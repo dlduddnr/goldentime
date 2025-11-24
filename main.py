@@ -12,8 +12,8 @@ from st_aggrid import AgGrid, GridOptionsBuilder, GridUpdateMode
 # ------------------------------------------
 st.set_page_config(page_title="골든 타임", layout="wide")
 
-DEFAULT_LAT = 37.623500
-DEFAULT_LON = 126.925000
+DEFAULT_LAT = 37.641240416205285
+DEFAULT_LON = 126.93756984090838
 
 HOTLINE = "010-9053-0540"
 
