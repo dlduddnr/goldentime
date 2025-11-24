@@ -389,16 +389,22 @@ elif st.session_state.page == "ambulance":
         )
     )
 
-    # 길안내 버튼 (구글 지도)
-    nav_url = f"https://map.naver.com/v5/directions/{DEFAULT_LAT},{DEFAULT_LON}/{sel['lat']},{sel['lon']}"
-    st.markdown(
-        f"""
-        <a href="{nav_url}" target="_blank">
-            <button style="margin-top:10px;padding:12px 24px;background:#34A853;color:white;
-                           border:none;border-radius:10px;font-size:18px;">
-                🧭 지도 앱으로 길안내 열기
-            </button>
-        </a>
-        """,
-        unsafe_allow_html=True,
-    )
+    # 길안내 버튼 (네이버 지도)
+  nav_url = (
+    f"https://map.naver.com/v5/directions/-/-/"
+    f"{DEFAULT_LON},{DEFAULT_LAT}/"
+    f"{sel['lon']},{sel['lat']}/0?c=14,0,0,0,dh"
+)
+
+st.markdown(
+    f"""
+    <a href="{nav_url}" target="_blank">
+        <button style="margin-top:10px;padding:12px 24px;background:#03C75A;color:white;
+                       border:none;border-radius:10px;font-size:18px;">
+            🧭 네이버 지도 길찾기 열기
+        </button>
+    </a>
+    """,
+    unsafe_allow_html=True
+)
+
