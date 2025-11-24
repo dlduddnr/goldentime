@@ -1,5 +1,3 @@
-# app.py
-
 import math
 import requests
 import pandas as pd
@@ -28,7 +26,7 @@ DISEASES = [
     "뇌출혈",
     "뇌진탕",
     "심장마비",
-    "뇌졸중",  # ← 중복 하나로 통합
+    "뇌졸중",
     "발작",
     "급성 복막염",
     "기흉",
@@ -314,13 +312,14 @@ elif st.session_state.page == "ambulance":
     #  병원선택 안정화 (❗중요) 
     # ------------------------------------
     if isinstance(raw, list) and len(raw) > 0:
-        sel = raw[0]  # 🔥 선택된 병원 dict 그대로 사용
+        selected_name = raw[0]["병원"]    # 병원 이름만 가져옴
     else:
-        sel = display_df.iloc[0].to_dict()  # 기본 1순위
+        selected_name = df.iloc[0]["병원"]
 
-    selected_hospital = sel["병원"]
+    # 🔥 병원 전체 정보를 원본 df에서 다시 불러오기 (website 포함)
+    sel = df[df["병원"] == selected_name].iloc[0]
 
-    st.success(f"🚨 선택된 병원: {selected_hospital}")
+    st.success(f"🚨 선택된 병원: {selected_name}")
     st.write(f"📍 주소: {sel['address']}")
 
     # 병원 전화 버튼
