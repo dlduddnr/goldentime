@@ -1,0 +1,1 @@
+pip install streamlit pydeck pandas requests streamlit-aggrid
