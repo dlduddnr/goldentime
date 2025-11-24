@@ -1,1 +1,5 @@
-pip install streamlit pydeck pandas requests streamlit-aggrid
+streamlit
+pandas
+pydeck
+requests
+streamlit-aggrid
