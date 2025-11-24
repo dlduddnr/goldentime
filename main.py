@@ -15,7 +15,7 @@ st.set_page_config(page_title="골든 타임", layout="wide")
 DEFAULT_LAT = 37.623500
 DEFAULT_LON = 126.925000
 
-HOTLINE = "010-9053-0540"
+HOTLINE = "010-5053-6831"
 
 DISEASES = ["심근경색", "뇌출혈", "뇌진탕", "심장마비", "뇌졸증", "발작"]
 
