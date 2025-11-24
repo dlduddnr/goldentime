@@ -14,8 +14,8 @@ from st_aggrid import AgGrid, GridOptionsBuilder, GridUpdateMode
 st.set_page_config(page_title="골든 타임", layout="wide")
 
 # 하나고 위치 (필요하면 실제 지도에서 확인 후 수정)
-DEFAULT_LAT = 37.623500
-DEFAULT_LON = 126.925000
+DEFAULT_LAT =  37.641240416205285
+DEFAULT_LON = 126.93756984090838
 
 # 핫라인 전화번호
 HOTLINE = "010-9053-0540"
