@@ -17,7 +17,7 @@ DEFAULT_LON = 126.93756984090838
 
 HOTLINE = "010-9053-0540"
 
-# 병원 아이콘 (96px짜리 큰 병원 마크)
+# 병원 아이콘 (196px짜리 큰 병원 마크)
 HOSPITAL_ICON_URL = "https://img.icons8.com/color/96/hospital-3.png"
 
 # 병명 리스트
@@ -84,7 +84,7 @@ HOSPITALS = {
         "lon": 126.9220,
         "address": "서울특별시 은평구 통일로 873",
         "phone": "02-777-8888",
-        "website": "http://www.chunggu.co.kr",
+        "website": "http://www.cgss.co.kr",
         "treats_default": with_defaults({
             "심근경색": True, "뇌출혈": True, "뇌졸증": True, "심장마비": True, "급성 복막염": True
         }),
