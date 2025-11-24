@@ -390,7 +390,7 @@ elif st.session_state.page == "ambulance":
     )
 
     # 길안내 버튼 (구글 지도)
-    nav_url = f"https://www.google.com/maps/dir/{DEFAULT_LAT},{DEFAULT_LON}/{sel['lat']},{sel['lon']}"
+    nav_url = f"https://map.naver.com/v5/directions/{DEFAULT_LAT},{DEFAULT_LON}/{sel['lat']},{sel['lon']}"
     st.markdown(
         f"""
         <a href="{nav_url}" target="_blank">
