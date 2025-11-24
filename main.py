@@ -6,7 +6,6 @@ import streamlit as st
 from st_aggrid import AgGrid, GridOptionsBuilder, GridUpdateMode
 
 
-
 # ------------------------------------------
 # 기본 설정
 # ------------------------------------------
@@ -19,7 +18,7 @@ HOTLINE = "010-9053-0540"
 
 
 # ------------------------------------------
-# 병명 리스트 (중복 제거 완료)
+# 병명 리스트 (중복 제거)
 # ------------------------------------------
 DISEASES = [
     "심근경색",
@@ -60,9 +59,7 @@ HOSPITALS = {
         "phone": "02-111-2222",
         "website": "https://eph.yonsei.ac.kr",
         "treats_default": with_defaults({
-            "뇌진탕": True,
-            "뇌졸중": True,
-            "발작": True
+            "뇌진탕": True, "뇌졸중": True, "발작": True
         }),
     },
     "가톨릭대 은평 성모병원": {
@@ -72,10 +69,8 @@ HOSPITALS = {
         "phone": "02-222-3333",
         "website": "https://www.cmcseoul.or.kr",
         "treats_default": with_defaults({
-            "심근경색": True,
-            "뇌출혈": True,
-            "뇌졸중": True,
-            "심장마비": True,
+            "심근경색": True, "뇌출혈": True,
+            "뇌졸중": True, "심장마비": True
         }),
     },
     "서울 특별시 은평병원": {
@@ -85,10 +80,8 @@ HOSPITALS = {
         "phone": "02-444-5555",
         "website": "http://epmhc.or.kr",
         "treats_default": with_defaults({
-            "뇌출혈": True,
-            "뇌진탕": True,
-            "뇌졸중": True,
-            "발작": True,
+            "뇌출혈": True, "뇌진탕": True,
+            "뇌졸중": True, "발작": True
         }),
     },
     "본 서부병원": {
@@ -98,9 +91,8 @@ HOSPITALS = {
         "phone": "02-666-7777",
         "website": "http://seobuhospital.co.kr",
         "treats_default": with_defaults({
-            "심근경색": True,
-            "뇌진탕": True,
-            "발작": True,
+            "심근경색": True, "뇌진탕": True,
+            "발작": True
         }),
     },
     "청구 성심 병원": {
@@ -110,15 +102,11 @@ HOSPITALS = {
         "phone": "02-777-8888",
         "website": "http://www.chunggu.co.kr",
         "treats_default": with_defaults({
-            "심근경색": True,
-            "뇌출혈": True,
-            "뇌졸중": True,
-            "심장마비": True,
-            "발작": True,
+            "심근경색": True, "뇌출혈": True,
+            "뇌졸중": True, "심장마비": True, "발작": True
         }),
     },
 }
-
 
 
 # ------------------------------------------
@@ -133,7 +121,6 @@ def haversine(lat1, lon1, lat2, lon2):
     return 2 * R * math.asin(math.sqrt(a))
 
 
-
 # ------------------------------------------
 # OSRM 경로 계산
 # ------------------------------------------
@@ -143,7 +130,7 @@ def get_route_osrm(lat1, lon1, lat2, lon2):
         f"{lon1},{lat1};{lon2},{lat2}?overview=full&geometries=geojson"
     )
     try:
-        r = requests.get(url, timeout=6).json()
+        r = requests.get(url, timeout=5).json()
         route = r["routes"][0]
         coords = route["geometry"]["coordinates"]
         dist = route["distance"] / 1000
@@ -153,7 +140,6 @@ def get_route_osrm(lat1, lon1, lat2, lon2):
     except:
         d = haversine(lat1, lon1, lat2, lon2)
         return d, d/50*60, [[lon1, lat1], [lon2, lat2]]
-
 
 
 # ------------------------------------------
@@ -168,10 +154,9 @@ if "hospital_treats" not in st.session_state:
     }
 
 
-
-# ------------------------------------------
-# HOME 화면
-# ------------------------------------------
+# ==========================================================
+#                    HOME 화면
+# ==========================================================
 if st.session_state.page == "home":
 
     st.markdown(
@@ -186,9 +171,9 @@ if st.session_state.page == "home":
         unsafe_allow_html=True
     )
 
-    center = st.columns([1,2,1])[1]
+    col = st.columns([1,2,1])[1]
 
-    with center:
+    with col:
         if st.button("🏥 병원 모드", use_container_width=True):
             st.session_state.page = "hospital"
 
@@ -197,10 +182,9 @@ if st.session_state.page == "home":
 
 
 
-
-# ------------------------------------------
-# 병원 모드
-# ------------------------------------------
+# ==========================================================
+#                    병원 모드
+# ==========================================================
 elif st.session_state.page == "hospital":
 
     st.header("🏥 병원 모드")
@@ -237,7 +221,7 @@ elif st.session_state.page == "hospital":
         data=[{"lat": info["lat"], "lon": info["lon"]}],
         get_position="[lon, lat]",
         get_color=[255, 0, 0],
-        get_radius=250,
+        get_radius=260,
     )
 
     view = pdk.ViewState(
@@ -250,9 +234,9 @@ elif st.session_state.page == "hospital":
 
 
 
-# ------------------------------------------
-# 구급차 모드
-# ------------------------------------------
+# ==========================================================
+#                    구급차 모드
+# ==========================================================
 elif st.session_state.page == "ambulance":
 
     st.header("🚑 구급차 모드")
@@ -263,7 +247,7 @@ elif st.session_state.page == "ambulance":
     st.subheader("① 병명 선택")
     disease = st.radio("병명을 선택하세요.", DISEASES, horizontal=True)
 
-    # 치료 가능 병원 필터링
+    # 치료 가능 병원 찾기
     candidates = []
     for h, i in HOSPITALS.items():
         if st.session_state.hospital_treats[h][disease]:
@@ -283,51 +267,44 @@ elif st.session_state.page == "ambulance":
 
     df = pd.DataFrame(candidates)
 
-    # ------------------------------
     # 🚫 치료 가능한 병원이 없는 경우
-    # ------------------------------
     if df.empty:
         st.error("🚫 이 병명을 치료할 수 있는 병원이 없습니다.")
         st.table(pd.DataFrame([{"병원": "병원 없음"}]))
         st.stop()
 
-    # 표시용 DF
     display_df = df[["병원", "거리(km)", "도착예상(분)", "address", "phone"]]
 
-    # AgGrid 설정
     gob = GridOptionsBuilder.from_dataframe(display_df)
     gob.configure_selection("single", use_checkbox=True)
 
     grid = AgGrid(
         display_df,
         gridOptions=gob.build(),
-        update_mode=GridUpdateMode.SELECTION_CHANGED,
+        update_mode=GridUpdateMode.MODEL_CHANGED | GridUpdateMode.SELECTION_CHANGED,
         height=250,
         theme="balham",
     )
 
     raw = grid.get("selected_rows", [])
 
-    # ------------------------------------
-    #  병원선택 안정화 (❗중요) 
-    # ------------------------------------
-    if isinstance(raw, list) and len(raw) > 0:
-        selected_name = raw[0]["병원"]    # 병원 이름만 가져옴
+    # ---- 병원 선택 안정화 ----
+    if raw:
+        selected_name = raw[0]["병원"]
     else:
         selected_name = df.iloc[0]["병원"]
 
-    # 🔥 병원 전체 정보를 원본 df에서 다시 불러오기 (website 포함)
-    sel = df[df["병원"] == selected_name].iloc[0]
+    sel = df[df["병원"] == selected_name].iloc[0]   # website 포함 원본 데이터 로드
 
     st.success(f"🚨 선택된 병원: {selected_name}")
     st.write(f"📍 주소: {sel['address']}")
 
-    # 병원 전화 버튼
+    # 전화 버튼
     st.markdown(
         f"""
         <a href="tel:{sel['phone']}">
             <button style="padding:12px 24px;background:#4e8cff;color:white;
-                           border:none;border-radius:10px;font-size:18px;margin-right:5px;">
+                           border:none;border-radius:10px;font-size:18px;">
                 📞 {sel['phone']} 전화걸기
             </button>
         </a>
@@ -335,7 +312,7 @@ elif st.session_state.page == "ambulance":
         unsafe_allow_html=True
     )
 
-    # 병원 홈페이지 버튼
+    # 홈페이지 버튼
     st.markdown(
         f"""
         <a href="{sel['website']}" target="_blank">
@@ -348,7 +325,7 @@ elif st.session_state.page == "ambulance":
         unsafe_allow_html=True
     )
 
-    st.subheader("③ 응급 핫라인")
+    st.subheader("③ 긴급 핫라인")
 
     st.markdown(
         f"""
@@ -368,29 +345,27 @@ elif st.session_state.page == "ambulance":
     # ------------------------------------------
     st.subheader("④ 지도")
 
-    dist, eta, path = get_route_osrm(
-        DEFAULT_LAT, DEFAULT_LON, sel["lat"], sel["lon"]
-    )
+    dist, eta, path = get_route_osrm(DEFAULT_LAT, DEFAULT_LON, sel["lat"], sel["lon"])
 
     # 내 위치
     ambulance_layer = pdk.Layer(
         "ScatterplotLayer",
         data=[{"lat": DEFAULT_LAT, "lon": DEFAULT_LON}],
         get_position="[lon, lat]",
-        get_radius=250,
+        get_radius=280,
         get_color=[0, 0, 255],
     )
 
-    # 병원 위치 (큰 점)
+    # 병원 위치
     hospital_layer = pdk.Layer(
         "ScatterplotLayer",
         data=[{"lat": sel["lat"], "lon": sel["lon"]}],
         get_position="[lon, lat]",
-        get_radius=260,
+        get_radius=300,
         get_color=[255, 0, 0],
     )
 
-    # 도로 경로
+    # 경로
     path_layer = pdk.Layer(
         "PathLayer",
         data=[{"path": path}],
@@ -405,17 +380,17 @@ elif st.session_state.page == "ambulance":
             initial_view_state=pdk.ViewState(
                 latitude=(DEFAULT_LAT + sel["lat"]) / 2,
                 longitude=(DEFAULT_LON + sel["lon"]) / 2,
-                zoom=13
+                zoom=13,
             ),
         )
     )
 
-    # 내비게이션 버튼
+    # 길안내 버튼
     nav_url = f"https://www.google.com/maps/dir/{DEFAULT_LAT},{DEFAULT_LON}/{sel['lat']},{sel['lon']}"
     st.markdown(
         f"""
         <a href="{nav_url}" target="_blank">
-            <button style="margin-top:10px;padding:12px 24px;background:#34a853;color:white;
+            <button style="margin-top:10px;padding:12px 24px;background:#34A853;color:white;
                            border:none;border-radius:10px;font-size:18px;">
                 🧭 지도 앱으로 길안내 열기
             </button>
