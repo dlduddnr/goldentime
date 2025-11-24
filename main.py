@@ -98,13 +98,14 @@ def get_route_osrm(lat1, lon1, lat2, lon2):
     )
     try:
         res = requests.get(url, timeout=5)
+        res.raise_for_status()
         route = res.json()["routes"][0]
         dist_km = route["distance"] / 1000
         dur_min = route["duration"] / 60
         coords = route["geometry"]["coordinates"]
         path = [[c[0], c[1]] for c in coords]
         return dist_km, dur_min, path
-    except:
+    except Exception:
         dist = haversine(lat1, lon1, lat2, lon2)
         return dist, dist / 50 * 60, [[lon1, lat1], [lon2, lat2]]
 
@@ -181,6 +182,7 @@ elif st.session_state.page == "ambulance":
     st.header("🚑 구급차 모드")
     st.button("⬅ 홈으로", on_click=lambda: st.session_state.update(page="home"))
 
+    # 맨 위 지도 placeholder
     map_placeholder = st.empty()
 
     st.subheader("① 내 위치 (하나고)")
@@ -212,13 +214,17 @@ elif st.session_state.page == "ambulance":
                 "phone": i["phone"],
             })
 
+    if not candidates:
+        st.error("현재 이 병명을 치료 가능으로 체크한 병원이 없습니다. (병원 모드에서 설정해 주세요)")
+        st.stop()
+
     df = pd.DataFrame(candidates).sort_values("도착예상(분)").reset_index(drop=True)
 
-    st.subheader("③ 수용 가능 병원 목록 (표 클릭하여 선택)")
+    st.subheader("③ 수용 가능 병원 목록 (표를 클릭해서 선택)")
 
     gob = GridOptionsBuilder.from_dataframe(df)
     gob.configure_selection("single", use_checkbox=True)
-    grid = AgGrid(
+    grid_response = AgGrid(
         df,
         gridOptions=gob.build(),
         update_mode=GridUpdateMode.SELECTION_CHANGED,
@@ -226,14 +232,22 @@ elif st.session_state.page == "ambulance":
         theme="balham",
     )
 
-    if grid.selected_rows:
-        selected = grid.selected_rows[0]["병원"]
-    else:
-        selected = df.iloc[0]["병원"]
+    # >>>>> 여기가 수정된 부분 <<<<<
+    selected_rows = grid_response.get("selected_rows", None)
 
-    sel = df[df["병원"] == selected].iloc[0]
+    selected_name = None
+    if isinstance(selected_rows, list) and len(selected_rows) > 0:
+        selected_name = selected_rows[0]["병원"]
+    elif isinstance(selected_rows, pd.DataFrame) and not selected_rows.empty:
+        selected_name = selected_rows.iloc[0]["병원"]
 
-    st.success(f"🚨 선택된 병원: {selected}")
+    if not selected_name:
+        selected_name = df.iloc[0]["병원"]
+    # >>>>> 수정 끝 <<<<<
+
+    sel = df[df["병원"] == selected_name].iloc[0]
+
+    st.success(f"🚨 선택된 병원: {selected_name}")
     st.write(f"📍 주소: {sel['address']}")
     st.write(f"☎ 전화번호: {sel['phone']}")
 
@@ -250,9 +264,7 @@ elif st.session_state.page == "ambulance":
         unsafe_allow_html=True
     )
 
-    # ------------------------------------------
-    # 도로 기준 경로 지도 업데이트
-    # ------------------------------------------
+    # 도로 기준 경로
     dist, eta, path = get_route_osrm(
         DEFAULT_LAT, DEFAULT_LON, sel["lat"], sel["lon"]
     )
@@ -279,7 +291,7 @@ elif st.session_state.page == "ambulance":
 
     hosp_layer = pdk.Layer(
         "ScatterplotLayer",
-        data=[{"lat": sel["lat"], "lon": sel["lon"], "name": selected}],
+        data=[{"lat": sel["lat"], "lon": sel["lon"], "name": selected_name}],
         get_position="[lon, lat]",
         get_color=[255,0,0],
         get_radius=120
