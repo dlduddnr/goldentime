@@ -3,3 +3,4 @@ pandas
 pydeck
 requests
 streamlit-aggrid
+streamlit-geolocation
