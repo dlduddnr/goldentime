@@ -5,10 +5,6 @@ import pydeck as pdk
 import streamlit as st
 from st_aggrid import AgGrid, GridOptionsBuilder, GridUpdateMode
 
-# folium + streamlit-folium : 지도 클릭용
-import folium
-from streamlit_folium import st_folium
-
 # GPS (없어도 앱은 돌아가게 예외 처리)
 try:
     from streamlit_geolocation import streamlit_geolocation
