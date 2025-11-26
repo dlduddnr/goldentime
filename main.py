@@ -5,69 +5,81 @@ import pydeck as pdk
 import streamlit as st
 from st_aggrid import AgGrid, GridOptionsBuilder, GridUpdateMode
 
+# GPS 컴포넌트 (설치 안 되어 있어도 앱은 돌아가게 처리)
+try:
+    from streamlit_geolocation import streamlit_geolocation
+    GEO_AVAILABLE = True
+except ImportError:
+    GEO_AVAILABLE = False
+
 # ------------------------------------------
 # 기본 설정
 # ------------------------------------------
 st.set_page_config(page_title="골든 타임", layout="wide")
 
-# 하나고 위치
+# 기본 출발 위치: 하나고
 DEFAULT_LAT = 37.641240416205285
 DEFAULT_LON = 126.93756984090838
+DEFAULT_START_NAME = "하나고등학교"
 
 HOTLINE = "010-9053-0540"
 
 # ------------------------------------------
-# 전역 스타일 (디자인 고급화)
+# 전역 간단 스타일 (이전 느낌으로 단순화)
 # ------------------------------------------
 st.markdown(
     """
     <style>
     .main {
-        background: linear-gradient(135deg, #f3f7ff 0%, #ffffff 60%);
+        background: #f5f7fb;
     }
-    .app-title {
-        font-size: 40px;
-        font-weight: 800;
-        color: #1f2933;
-        margin-bottom: 8px;
-    }
-    .app-subtitle {
-        font-size: 18px;
-        color: #5f6c80;
-        margin-bottom: 0;
-    }
-    .card {
+    .hero-card {
         background: white;
-        padding: 24px 28px;
+        padding: 26px 30px;
         border-radius: 18px;
-        box-shadow: 0 10px 30px rgba(15, 23, 42, 0.12);
-        margin-bottom: 18px;
+        box-shadow: 0 8px 24px rgba(15, 23, 42, 0.12);
         border: 1px solid #e5e9f2;
+        text-align: center;
     }
-    .card-header {
-        font-size: 20px;
-        font-weight: 700;
-        margin-bottom: 8px;
-        color: #1f2933;
-        display: flex;
-        align-items: center;
-        gap: 6px;
+    .hero-title {
+        font-size: 38px;
+        font-weight: 800;
+        color: #111827;
+        margin-bottom: 6px;
     }
-    .step-badge {
+    .hero-subtitle {
+        font-size: 17px;
+        color: #4b5563;
+        margin-bottom: 14px;
+    }
+    .pill {
         display:inline-block;
-        background:#2563eb;
-        color:white;
-        font-size:12px;
-        padding:2px 8px;
+        padding:4px 10px;
         border-radius:999px;
-        margin-right:6px;
+        background:#e5edff;
+        color:#334e68;
+        font-size:12px;
+        margin:2px;
+    }
+    .section-card {
+        background:white;
+        padding:20px 22px;
+        border-radius:16px;
+        box-shadow:0 4px 16px rgba(15,23,42,0.08);
+        border:1px solid #e5e9f2;
+        margin-top:14px;
+    }
+    .section-title {
+        font-size:18px;
+        font-weight:700;
+        margin-bottom:8px;
+        color:#111827;
     }
     .stButton>button {
         border-radius: 999px;
         font-size: 18px;
-        padding: 12px 24px;
+        padding: 10px 22px;
         border: none;
-        box-shadow: 0 8px 20px rgba(37, 99, 235, 0.3);
         font-weight: 600;
     }
     .mode-btn-hospital button {
@@ -78,22 +90,13 @@ st.markdown(
         background: #ef4444;
         color: white;
     }
-    .pill {
-        display:inline-block;
-        padding:4px 10px;
-        border-radius:999px;
-        background:#e5edff;
-        color:#334e68;
-        font-size:12px;
-        margin-bottom:6px;
-    }
     </style>
     """,
     unsafe_allow_html=True,
 )
 
 # ------------------------------------------
-# 병명 리스트
+# 병명 리스트 (발작 제거)
 # ------------------------------------------
 DISEASES = [
     "심근경색",
@@ -101,7 +104,6 @@ DISEASES = [
     "뇌진탕",
     "심장마비",
     "뇌졸중",
-    "발작",
     "급성 복막염",
     "기흉",
     "폐색전증",
@@ -124,7 +126,7 @@ def with_defaults(custom_dict):
 
 
 # ------------------------------------------
-# 병원 데이터
+# 병원 데이터 (추가 병원 포함, 발작 제거 반영)
 # ------------------------------------------
 HOSPITALS = {
     "은평 연세 병원": {
@@ -134,7 +136,7 @@ HOSPITALS = {
         "phone": "02-111-2222",
         "website": "https://eph.yonsei.ac.kr",
         "treats_default": with_defaults(
-            {"뇌진탕": True, "뇌졸중": True, "발작": True}
+            {"뇌진탕": True, "뇌졸중": True}
         ),
     },
     "가톨릭대 은평 성모병원": {
@@ -147,16 +149,6 @@ HOSPITALS = {
             {"심근경색": True, "뇌출혈": True, "뇌졸중": True, "심장마비": True}
         ),
     },
-    "성누가병원": {
-        "lat": 37.6099,
-        "lon": 126.9293,
-        "address": "서울특별시 은평구 281-102",
-        "phone": "1660-0075",
-        "website": "https://slmc.co.kr/new/index.php",
-        "treats_default": with_defaults(
-            {"뇌출혈": True, "뇌진탕": True, "뇌졸중": True, "아나필락시스": True}
-        ),
-    }, 
     "서울 특별시 은평병원": {
         "lat": 37.5940039,
         "lon": 126.9232331,
@@ -164,7 +156,7 @@ HOSPITALS = {
         "phone": "02-444-5555",
         "website": "http://epmhc.or.kr",
         "treats_default": with_defaults(
-            {"뇌출혈": True, "뇌진탕": True, "뇌졸중": True, "발작": True}
+            {"뇌출혈": True, "뇌진탕": True, "뇌졸중": True}
         ),
     },
     "본 서부병원": {
@@ -174,7 +166,7 @@ HOSPITALS = {
         "phone": "02-666-7777",
         "website": "http://seobuhospital.co.kr",
         "treats_default": with_defaults(
-            {"심근경색": True, "뇌진탕": True, "발작": True}
+            {"심근경색": True, "뇌진탕": True}
         ),
     },
     "청구 성심 병원": {
@@ -184,20 +176,43 @@ HOSPITALS = {
         "phone": "02-777-8888",
         "website": "http://www.chunggu.co.kr",
         "treats_default": with_defaults(
-            {
-                "심근경색": True,
-                "뇌출혈": True,
-                "뇌졸중": True,
-                "패혈증": True,
-                "발작": True,
-            }
+            {"심근경색": True, "뇌출혈": True, "뇌졸중": True, "심장마비": True}
+        ),
+    },
+    "성누가병원": {
+        "lat": 37.6099,
+        "lon": 126.9293,
+        "address": "서울특별시 은평구 281 102번지",
+        "phone": "02-888-9999",
+        "website": "https://example-snugcah.or.kr",
+        "treats_default": with_defaults(
+            {"심근경색": True, "뇌졸중": True, "뇌출혈": True}
+        ),
+    },
+    "리드힐병원": {
+        "lat": 37.6203,
+        "lon": 126.9299,
+        "address": "서울특별시 은평구 연서로 10",
+        "phone": "02-555-6666",
+        "website": "https://example-leadhill.or.kr",
+        "treats_default": with_defaults(
+            {"심근경색": True, "기흉": True, "폐색전증": True}
+        ),
+    },
+    "연세노블병원": {
+        "lat": 37.6018,
+        "lon": 126.9270,
+        "address": "서울특별시 은평구 녹번동 154-19",
+        "phone": "02-999-0000",
+        "website": "https://example-ynoble.or.kr",
+        "treats_default": with_defaults(
+            {"뇌졸중": True, "뇌출혈": True, "뇌수막염": True}
         ),
     },
 }
 
-
 # ------------------------------------------
-# 거리 계산
+# 거리 / 경로 계산
 # ------------------------------------------
 def haversine(lat1, lon1, lat2, lon2):
     R = 6371
@@ -212,9 +227,6 @@ def haversine(lat1, lon1, lat2, lon2):
     return 2 * R * math.asin(math.sqrt(a))
 
 
-# ------------------------------------------
-# OSRM 최단 경로 계산 (도로 기준)
-# ------------------------------------------
 def get_route_osrm(lat1, lon1, lat2, lon2):
     url = (
         f"https://router.project-osrm.org/route/v1/driving/"
@@ -234,7 +246,7 @@ def get_route_osrm(lat1, lon1, lat2, lon2):
 
 
 # ------------------------------------------
-# 세션 상태 초기화
+# 세션 상태 초기화 + 구조 보정 (KeyError 방지)
 # ------------------------------------------
 if "page" not in st.session_state:
     st.session_state.page = "home"
@@ -243,9 +255,18 @@ if "hospital_treats" not in st.session_state:
     st.session_state.hospital_treats = {
         h: dict(info["treats_default"]) for h, info in HOSPITALS.items()
     }
+else:
+    # 새로 추가된 병원 / 병명 자동 보정
+    for h, info in HOSPITALS.items():
+        if h not in st.session_state.hospital_treats:
+            st.session_state.hospital_treats[h] = dict(info["treats_default"])
+        else:
+            for d in DISEASES:
+                st.session_state.hospital_treats[h].setdefault(d, False)
+
 
 # ==========================================================
-#                    HOME 화면
+#                    HOME 화면 (단순 버전)
 # ==========================================================
 if st.session_state.page == "home":
     col_left, col_center, col_right = st.columns([1, 2, 1])
@@ -253,33 +274,31 @@ if st.session_state.page == "home":
     with col_center:
         st.markdown(
             """
-            <div class="card" style="text-align:center;margin-top:80px;">
-                <div class="app-title">⏱ 골든 타임</div>
-                <p class="app-subtitle">은평권 응급 환자 이송 · 병원 매칭 시스템</p>
-                <div style="margin-top:16px;">
+            <div class="hero-card">
+                <div class="hero-title">⏱ 골든 타임</div>
+                <p class="hero-subtitle">은평권 응급 환자 이송 · 병원 매칭 시스템</p>
+                <div>
                     <span class="pill">하나고 출발 기준</span>
-                    <span class="pill">실제 도로 기준 최적 경로</span>
+                    <span class="pill">도로 기준 최적 경로</span>
+                    <span class="pill">병원 수용 가능 병명 사전 체크</span>
                 </div>
             </div>
             """,
             unsafe_allow_html=True,
         )
 
-        with st.container():
-            c1, c2 = st.columns(2)
-            with c1:
-                with st.container():
-                    st.markdown('<div class="mode-btn-hospital">', unsafe_allow_html=True)
-                    if st.button("🏥 병원 모드", use_container_width=True):
-                        st.session_state.page = "hospital"
-                    st.markdown("</div>", unsafe_allow_html=True)
-            with c2:
-                with st.container():
-                    st.markdown('<div class="mode-btn-ambulance">', unsafe_allow_html=True)
-                    if st.button("🚑 구급차 모드", use_container_width=True):
-                        st.session_state.page = "ambulance"
-                    st.markdown("</div>", unsafe_allow_html=True)
-
+        st.write("")
+        c1, c2 = st.columns(2)
+        with c1:
+            st.markdown('<div class="mode-btn-hospital">', unsafe_allow_html=True)
+            if st.button("🏥 병원 모드", use_container_width=True):
+                st.session_state.page = "hospital"
+            st.markdown("</div>", unsafe_allow_html=True)
+        with c2:
+            st.markdown('<div class="mode-btn-ambulance">', unsafe_allow_html=True)
+            if st.button("🚑 구급차 모드", use_container_width=True):
+                st.session_state.page = "ambulance"
+            st.markdown("</div>", unsafe_allow_html=True)
 
 # ==========================================================
 #                    병원 모드
@@ -287,19 +306,15 @@ if st.session_state.page == "home":
 elif st.session_state.page == "hospital":
     top_left, top_right = st.columns([4, 1])
     with top_left:
-        st.markdown(
-            '<div class="card-header">🏥 병원 모드</div>', unsafe_allow_html=True
-        )
+        st.subheader("🏥 병원 모드")
     with top_right:
         if st.button("⬅ 홈으로"):
             st.session_state.page = "home"
 
-    # 카드 1: 병원 선택 + 체크리스트
-    st.markdown('<div class="card">', unsafe_allow_html=True)
-    st.markdown(
-        '<div class="card-header"><span class="step-badge">STEP 1</span>병원 선택 및 수용 가능 질환 설정</div>',
-        unsafe_allow_html=True,
-    )
+    # 병원 선택 + 체크리스트
+    st.markdown('<div class="section-card">', unsafe_allow_html=True)
+    st.markdown('<div class="section-title">1. 병원 선택 및 수용 가능 병명 설정</div>', unsafe_allow_html=True)
+
     hospital = st.selectbox("병원을 선택하세요.", list(HOSPITALS.keys()))
     info = HOSPITALS[hospital]
 
@@ -307,25 +322,26 @@ elif st.session_state.page == "hospital":
     cols = st.columns(2)
     for idx, d in enumerate(DISEASES):
         with cols[idx % 2]:
-            st.session_state.hospital_treats[hospital][d] = st.checkbox(
-                d, value=st.session_state.hospital_treats[hospital][d], key=f"{hospital}_{d}"
+            current = st.session_state.hospital_treats[hospital].get(d, False)
+            new_val = st.checkbox(
+                d,
+                value=current,
+                key=f"{hospital}_{d}",
             )
+            st.session_state.hospital_treats[hospital][d] = new_val
     st.markdown("</div>", unsafe_allow_html=True)
 
-    # 카드 2: 병원 정보 + 지도
-    st.markdown('<div class="card">', unsafe_allow_html=True)
-    st.markdown(
-        '<div class="card-header"><span class="step-badge">STEP 2</span>병원 정보</div>',
-        unsafe_allow_html=True,
-    )
-    st.write(f"**병원명** : {hospital}")
-    st.write(f"**주소** : {info['address']}")
+    # 병원 정보 + 위치
+    st.markdown('<div class="section-card">', unsafe_allow_html=True)
+    st.markdown('<div class="section-title">2. 병원 정보</div>', unsafe_allow_html=True)
+    st.write(f"**병원명:** {hospital}")
+    st.write(f"**주소:** {info['address']}")
 
     st.markdown(
         f"""
         <a href="tel:{info['phone']}">
-            <button style="padding:10px 20px;background:#2563EB;color:white;
-                           border:none;border-radius:999px;font-size:16px;margin-top:6px;">
+            <button style="padding:8px 18px;background:#2563EB;color:white;
+                           border:none;border-radius:999px;font-size:15px;margin-top:6px;">
                 📞 {info['phone']} 대표번호로 전화하기
             </button>
         </a>
@@ -340,15 +356,12 @@ elif st.session_state.page == "hospital":
         "ScatterplotLayer",
         data=[{"lat": info["lat"], "lon": info["lon"]}],
         get_position="[lon, lat]",
-        get_color=[239, 68, 68],  # 빨강
+        get_color=[239, 68, 68],
         get_radius=260,
     )
-
     view = pdk.ViewState(latitude=info["lat"], longitude=info["lon"], zoom=14)
-
     st.pydeck_chart(pdk.Deck(layers=[hospital_layer], initial_view_state=view))
     st.markdown("</div>", unsafe_allow_html=True)
-
 
 # ==========================================================
 #                    구급차 모드
@@ -356,29 +369,50 @@ elif st.session_state.page == "hospital":
 elif st.session_state.page == "ambulance":
     top_left, top_right = st.columns([4, 1])
     with top_left:
-        st.markdown(
-            '<div class="card-header">🚑 구급차 모드</div>', unsafe_allow_html=True
-        )
+        st.subheader("🚑 구급차 모드")
     with top_right:
         if st.button("⬅ 홈으로"):
             st.session_state.page = "home"
 
-    # 카드 1: 내 위치 안내 + 병명 선택
-    st.markdown('<div class="card">', unsafe_allow_html=True)
-    st.markdown(
-        '<div class="card-header"><span class="step-badge">STEP 1</span>병명 선택</div>',
-        unsafe_allow_html=True,
-    )
+    # ---------- 출발 위치 설정 (GPS + 기본 하나고) ----------
+    st.markdown('<div class="section-card">', unsafe_allow_html=True)
+    st.markdown('<div class="section-title">1. 출발 위치 선택</div>', unsafe_allow_html=True)
 
-    st.write("📍 현재 출발지: **하나고등학교 (은평구 연서로 535)**")
+    start_lat = DEFAULT_LAT
+    start_lon = DEFAULT_LON
+    start_name = DEFAULT_START_NAME
+
+    st.write(f"기본 출발지: **{DEFAULT_START_NAME} (은평구 연서로 535)**")
+
+    if GEO_AVAILABLE:
+        st.info("📡 GPS 버튼을 누르면 현재 기기 위치를 사용합니다. (브라우저에서 위치 권한 허용 필요)")
+        if st.button("📍 GPS로 현재 위치 가져오기"):
+            loc = streamlit_geolocation()
+            if isinstance(loc, dict) and loc.get("latitude") and loc.get("longitude"):
+                start_lat = loc["latitude"]
+                start_lon = loc["longitude"]
+                start_name = "현재 위치"
+                st.success(f"현재 위치 사용: 위도 {start_lat:.5f}, 경도 {start_lon:.5f}")
+            else:
+                st.warning("위치 정보를 가져오지 못했습니다. 기본 위치(하나고)를 계속 사용합니다.")
+    else:
+        st.info("⚠ GPS 기능을 사용하려면 `streamlit-geolocation` 패키지를 설치해야 합니다.\n\n`pip install streamlit-geolocation` 후 requirements.txt 에도 추가해 주세요.")
+
+    st.markdown("</div>", unsafe_allow_html=True)
+
+    # ---------- 병명 선택 ----------
+    st.markdown('<div class="section-card">', unsafe_allow_html=True)
+    st.markdown('<div class="section-title">2. 병명 선택</div>', unsafe_allow_html=True)
     disease = st.radio("환자의 병명을 선택하세요.", DISEASES, horizontal=True)
     st.markdown("</div>", unsafe_allow_html=True)
 
-    # 치료 가능 병원 필터링
+    # ---------- 수용 가능 병원 필터링 ----------
     candidates = []
     for h, i in HOSPITALS.items():
-        if st.session_state.hospital_treats[h][disease]:
-            dist, eta, _ = get_route_osrm(DEFAULT_LAT, DEFAULT_LON, i["lat"], i["lon"])
+        # KeyError 방지를 위해 get 사용
+        can_treat = st.session_state.hospital_treats.get(h, {}).get(disease, False)
+        if can_treat:
+            dist, eta, _ = get_route_osrm(start_lat, start_lon, i["lat"], i["lon"])
             candidates.append(
                 {
                     "병원": h,
@@ -392,12 +426,9 @@ elif st.session_state.page == "ambulance":
                 }
             )
 
-    # 카드 2: 병원 선택 테이블
-    st.markdown('<div class="card">', unsafe_allow_html=True)
-    st.markdown(
-        '<div class="card-header"><span class="step-badge">STEP 2</span>수용 가능 병원 선택</div>',
-        unsafe_allow_html=True,
-    )
+    # ---------- 병원 선택 테이블 ----------
+    st.markdown('<div class="section-card">', unsafe_allow_html=True)
+    st.markdown('<div class="section-title">3. 수용 가능 병원 선택</div>', unsafe_allow_html=True)
 
     df = pd.DataFrame(candidates)
 
@@ -424,7 +455,6 @@ elif st.session_state.page == "ambulance":
 
     raw_sel = grid.get("selected_rows", [])
 
-    # selected_rows → list[dict]로 정규화
     if isinstance(raw_sel, pd.DataFrame):
         selected_rows = raw_sel.to_dict("records")
     elif isinstance(raw_sel, list):
@@ -445,21 +475,18 @@ elif st.session_state.page == "ambulance":
     )
     st.markdown("</div>", unsafe_allow_html=True)
 
-    # 카드 3: 연락 수단
-    st.markdown('<div class="card">', unsafe_allow_html=True)
-    st.markdown(
-        '<div class="card-header"><span class="step-badge">STEP 3</span>연락 및 핫라인</div>',
-        unsafe_allow_html=True,
-    )
+    # ---------- 연락 / 핫라인 ----------
+    st.markdown('<div class="section-card">', unsafe_allow_html=True)
+    st.markdown('<div class="section-title">4. 연락 및 핫라인</div>', unsafe_allow_html=True)
 
     c1, c2 = st.columns(2)
     with c1:
-        st.write(f"📍 **주소** : {sel['address']}")
+        st.write(f"📍 **주소:** {sel['address']}")
         st.markdown(
             f"""
             <a href="tel:{sel['phone']}">
-                <button style="padding:10px 20px;background:#2563EB;color:white;
-                               border:none;border-radius:999px;font-size:16px;">
+                <button style="padding:8px 18px;background:#2563EB;color:white;
+                               border:none;border-radius:999px;font-size:15px;">
                     📞 {sel['phone']} 병원으로 전화하기
                 </button>
             </a>
@@ -469,22 +496,21 @@ elif st.session_state.page == "ambulance":
         st.markdown(
             f"""
             <a href="{sel['website']}" target="_blank">
-                <button style="margin-top:8px;padding:10px 20px;background:#4B5563;color:white;
-                               border:none;border-radius:999px;font-size:16px;">
+                <button style="margin-top:6px;padding:8px 18px;background:#4B5563;color:white;
+                               border:none;border-radius:999px;font-size:15px;">
                     🏥 병원 홈페이지 열기
                 </button>
             </a>
             """,
             unsafe_allow_html=True,
         )
-
     with c2:
         st.write("🚨 **응급 핫라인**")
         st.markdown(
             f"""
             <a href="tel:{HOTLINE}">
-                <button style="padding:12px 24px;background:#DC2626;color:white;
-                               border:none;border-radius:999px;font-size:18px;">
+                <button style="padding:10px 22px;background:#DC2626;color:white;
+                               border:none;border-radius:999px;font-size:17px;">
                     🚨 {HOTLINE} 으로 즉시 전화
                 </button>
             </a>
@@ -494,27 +520,25 @@ elif st.session_state.page == "ambulance":
 
     st.markdown("</div>", unsafe_allow_html=True)
 
-    # 카드 4: 지도 + 네이버 길찾기
-    st.markdown('<div class="card">', unsafe_allow_html=True)
-    st.markdown(
-        '<div class="card-header"><span class="step-badge">STEP 4</span>지도 및 길안내</div>',
-        unsafe_allow_html=True,
-    )
+    # ---------- 지도 + 네이버 길찾기 ----------
+    st.markdown('<div class="section-card">', unsafe_allow_html=True)
+    st.markdown('<div class="section-title">5. 지도 및 길안내</div>', unsafe_allow_html=True)
 
     dist, eta, path = get_route_osrm(
-        DEFAULT_LAT, DEFAULT_LON, sel["lat"], sel["lon"]
+        start_lat, start_lon, sel["lat"], sel["lon"]
     )
 
     st.write(
         f"🛣 도로 기준 거리: **{round(dist,2)} km**, 예상 소요 시간: **{round(eta,1)} 분**"
     )
+    st.write(f"출발지: **{start_name}**")
 
     ambulance_layer = pdk.Layer(
         "ScatterplotLayer",
-        data=[{"lat": DEFAULT_LAT, "lon": DEFAULT_LON}],
+        data=[{"lat": start_lat, "lon": start_lon}],
         get_position="[lon, lat]",
         get_radius=320,
-        get_color=[37, 99, 235],  # 파랑
+        get_color=[37, 99, 235],
     )
 
     hospital_layer = pdk.Layer(
@@ -522,7 +546,7 @@ elif st.session_state.page == "ambulance":
         data=[{"lat": sel["lat"], "lon": sel["lon"]}],
         get_position="[lon, lat]",
         get_radius=340,
-        get_color=[239, 68, 68],  # 빨강
+        get_color=[239, 68, 68],
     )
 
     path_layer = pdk.Layer(
@@ -530,15 +554,15 @@ elif st.session_state.page == "ambulance":
         data=[{"path": path}],
         get_path="path",
         get_width=6,
-        get_color=[16, 185, 129],  # 초록
+        get_color=[16, 185, 129],
     )
 
     st.pydeck_chart(
         pdk.Deck(
             layers=[ambulance_layer, hospital_layer, path_layer],
             initial_view_state=pdk.ViewState(
-                latitude=(DEFAULT_LAT + sel["lat"]) / 2,
-                longitude=(DEFAULT_LON + sel["lon"]) / 2,
+                latitude=(start_lat + sel["lat"]) / 2,
+                longitude=(start_lon + sel["lon"]) / 2,
                 zoom=13,
             ),
             tooltip={"text": "응급 이송 경로"},
@@ -548,7 +572,7 @@ elif st.session_state.page == "ambulance":
     # 네이버 지도 길찾기 (앱용 nmap://)
     nmap_url = (
         "nmap://route/car?"
-        f"slat={DEFAULT_LAT}&slng={DEFAULT_LON}&sname=하나고등학교&"
+        f"slat={start_lat}&slng={start_lon}&sname={start_name}&"
         f"dlat={sel['lat']}&dlng={sel['lon']}&dname={selected_name}&"
         "appname=goldentime"
     )
@@ -556,21 +580,21 @@ elif st.session_state.page == "ambulance":
     # 웹 브라우저용 네이버 지도 (fallback)
     web_url = (
         "https://map.naver.com/v5/directions/-/-/"
-        f"{DEFAULT_LON},{DEFAULT_LAT}/{sel['lon']},{sel['lat']}/0?c=14,0,0,0,dh"
+        f"{start_lon},{start_lat}/{sel['lon']},{sel['lat']}/0?c=14,0,0,0,dh"
     )
 
     st.markdown(
         f"""
         <div style="display:flex;flex-wrap:wrap;gap:10px;margin-top:10px;">
             <a href="{nmap_url}">
-                <button style="padding:10px 20px;background:#03C75A;color:white;
-                               border:none;border-radius:999px;font-size:16px;">
+                <button style="padding:9px 18px;background:#03C75A;color:white;
+                               border:none;border-radius:999px;font-size:15px;">
                     🧭 네이버 지도 앱으로 길찾기
                 </button>
             </a>
             <a href="{web_url}" target="_blank">
-                <button style="padding:10px 20px;background:#111827;color:white;
-                               border:none;border-radius:999px;font-size:16px;">
+                <button style="padding:9px 18px;background:#111827;color:white;
+                               border:none;border-radius:999px;font-size:15px;">
                     🌐 브라우저에서 네이버 지도 열기
                 </button>
             </a>
