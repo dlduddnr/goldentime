@@ -87,23 +87,13 @@ st.markdown(
         font-size:12px;
         margin-bottom:6px;
     }
-    .feature-chip {
-        display:inline-block;
-        padding:3px 8px;
-        border-radius:999px;
-        background:#f3f4ff;
-        color:#4b5563;
-        font-size:11px;
-        margin-right:4px;
-        margin-bottom:4px;
-    }
     </style>
     """,
     unsafe_allow_html=True,
 )
 
 # ------------------------------------------
-# 병명 리스트 (발작 제거)
+# 병명 리스트
 # ------------------------------------------
 DISEASES = [
     "심근경색",
@@ -111,6 +101,7 @@ DISEASES = [
     "뇌진탕",
     "심장마비",
     "뇌졸중",
+    "발작",
     "급성 복막염",
     "기흉",
     "폐색전증",
@@ -133,7 +124,7 @@ def with_defaults(custom_dict):
 
 
 # ------------------------------------------
-# 병원 데이터 (3곳 추가 + 발작 제거)
+# 병원 데이터
 # ------------------------------------------
 HOSPITALS = {
     "은평 연세 병원": {
@@ -143,7 +134,7 @@ HOSPITALS = {
         "phone": "02-111-2222",
         "website": "https://eph.yonsei.ac.kr",
         "treats_default": with_defaults(
-            {"뇌진탕": True, "뇌졸중": True}
+            {"뇌진탕": True, "뇌졸중": True, "발작": True}
         ),
     },
     "가톨릭대 은평 성모병원": {
@@ -156,6 +147,16 @@ HOSPITALS = {
             {"심근경색": True, "뇌출혈": True, "뇌졸중": True, "심장마비": True}
         ),
     },
+    "성누가병원": {
+        "lat": 37.6099,
+        "lon": 126.9293,
+        "address": "서울특별시 은평구 281-102",
+        "phone": "1660-0075",
+        "website": "https://slmc.co.kr/new/index.php",
+        "treats_default": with_defaults(
+            {"뇌출혈": True, "뇌진탕": True, "뇌졸중": True, "아나필락시스": True}
+        ),
+    }, 
     "서울 특별시 은평병원": {
         "lat": 37.5940039,
         "lon": 126.9232331,
@@ -163,7 +164,7 @@ HOSPITALS = {
         "phone": "02-444-5555",
         "website": "http://epmhc.or.kr",
         "treats_default": with_defaults(
-            {"뇌출혈": True, "뇌진탕": True, "뇌졸중": True}
+            {"뇌출혈": True, "뇌진탕": True, "뇌졸중": True, "발작": True}
         ),
     },
     "본 서부병원": {
@@ -173,7 +174,7 @@ HOSPITALS = {
         "phone": "02-666-7777",
         "website": "http://seobuhospital.co.kr",
         "treats_default": with_defaults(
-            {"심근경색": True, "뇌진탕": True}
+            {"심근경색": True, "뇌진탕": True, "발작": True}
         ),
     },
     "청구 성심 병원": {
@@ -183,38 +184,13 @@ HOSPITALS = {
         "phone": "02-777-8888",
         "website": "http://www.chunggu.co.kr",
         "treats_default": with_defaults(
-            {"심근경색": True, "뇌출혈": True, "뇌졸중": True, "심장마비": True}
-        ),
-    },
-    # 🔹 추가 병원들
-    "성누가병원": {
-        "lat": 37.6099,
-        "lon": 126.9293,
-        "address": "서울특별시 은평구 281 102번지",
-        "phone": "02-888-9999",
-        "website": "https://example-snugcah.or.kr",
-        "treats_default": with_defaults(
-            {"심근경색": True, "뇌졸중": True, "뇌출혈": True}
-        ),
-    },
-    "리드힐병원": {
-        "lat": 37.6203,
-        "lon": 126.9299,
-        "address": "서울특별시 은평구 연서로 10",
-        "phone": "02-555-6666",
-        "website": "https://example-leadhill.or.kr",
-        "treats_default": with_defaults(
-            {"심근경색": True, "기흉": True, "폐색전증": True}
-        ),
-    },
-    "연세노블병원": {
-        "lat": 37.6018,
-        "lon": 126.9270,
-        "address": "서울특별시 은평구 녹번동 154-19",
-        "phone": "02-999-0000",
-        "website": "https://example-ynoble.or.kr",
-        "treats_default": with_defaults(
-            {"뇌졸중": True, "뇌출혈": True, "뇌수막염": True}
+            {
+                "심근경색": True,
+                "뇌출혈": True,
+                "뇌졸중": True,
+                "패혈증": True,
+                "발작": True,
+            }
         ),
     },
 }
@@ -269,92 +245,41 @@ if "hospital_treats" not in st.session_state:
     }
 
 # ==========================================================
-#                    HOME 화면 (디자인 강화)
+#                    HOME 화면
 # ==========================================================
 if st.session_state.page == "home":
     col_left, col_center, col_right = st.columns([1, 2, 1])
 
     with col_center:
-        # 메인 카드
         st.markdown(
             """
-            <div class="card" style="text-align:center;margin-top:40px;">
+            <div class="card" style="text-align:center;margin-top:80px;">
                 <div class="app-title">⏱ 골든 타임</div>
                 <p class="app-subtitle">은평권 응급 환자 이송 · 병원 매칭 시스템</p>
                 <div style="margin-top:16px;">
                     <span class="pill">하나고 출발 기준</span>
                     <span class="pill">실제 도로 기준 최적 경로</span>
-                    <span class="pill">응급실 수용 가능 여부 사전 확인</span>
                 </div>
             </div>
             """,
             unsafe_allow_html=True,
         )
 
-        # 모드 선택 버튼
-        c1, c2 = st.columns(2)
-        with c1:
-            st.markdown('<div class="mode-btn-hospital">', unsafe_allow_html=True)
-            if st.button("🏥 병원 모드", use_container_width=True):
-                st.session_state.page = "hospital"
-            st.markdown("</div>", unsafe_allow_html=True)
-        with c2:
-            st.markdown('<div class="mode-btn-ambulance">', unsafe_allow_html=True)
-            if st.button("🚑 구급차 모드", use_container_width=True):
-                st.session_state.page = "ambulance"
-            st.markdown("</div>", unsafe_allow_html=True)
+        with st.container():
+            c1, c2 = st.columns(2)
+            with c1:
+                with st.container():
+                    st.markdown('<div class="mode-btn-hospital">', unsafe_allow_html=True)
+                    if st.button("🏥 병원 모드", use_container_width=True):
+                        st.session_state.page = "hospital"
+                    st.markdown("</div>", unsafe_allow_html=True)
+            with c2:
+                with st.container():
+                    st.markdown('<div class="mode-btn-ambulance">', unsafe_allow_html=True)
+                    if st.button("🚑 구급차 모드", use_container_width=True):
+                        st.session_state.page = "ambulance"
+                    st.markdown("</div>", unsafe_allow_html=True)
 
-        # 실용적 안내 카드 3개
-        st.write("")
-        fc1, fc2, fc3 = st.columns(3)
-        with fc1:
-            st.markdown(
-                """
-                <div class="card" style="padding:16px 18px;">
-                    <div class="card-header" style="font-size:16px;">🏥 병원 모드</div>
-                    <div style="font-size:13px;color:#4b5563;">
-                        <ul>
-                            <li>현재 수용 가능한 병명 체크</li>
-                            <li>수술/시술 가능 여부 관리</li>
-                            <li>병원별 응급실 상태 실시간 반영</li>
-                        </ul>
-                    </div>
-                </div>
-                """,
-                unsafe_allow_html=True,
-            )
-        with fc2:
-            st.markdown(
-                """
-                <div class="card" style="padding:16px 18px;">
-                    <div class="card-header" style="font-size:16px;">🚑 구급차 모드</div>
-                    <div style="font-size:13px;color:#4b5563;">
-                        <ul>
-                            <li>환자 병명 선택 → 수용 가능 병원 자동 필터</li>
-                            <li>도착 예상 시간 기준 자동 정렬</li>
-                            <li>원터치 네이버 지도 길찾기</li>
-                        </ul>
-                    </div>
-                </div>
-                """,
-                unsafe_allow_html=True,
-            )
-        with fc3:
-            st.markdown(
-                """
-                <div class="card" style="padding:16px 18px;">
-                    <div class="card-header" style="font-size:16px;">📌 사용 팁</div>
-                    <div style="font-size:13px;color:#4b5563;">
-                        <ul>
-                            <li>먼저 병원 모드에서 병명 체크 필수</li>
-                            <li>구급차 모드는 병명 선택 후 표에서 병원 선택</li>
-                            <li>길안내는 네이버 지도 앱/웹 모두 지원</li>
-                        </ul>
-                    </div>
-                </div>
-                """,
-                unsafe_allow_html=True,
-            )
 
 # ==========================================================
 #                    병원 모드
@@ -383,9 +308,7 @@ elif st.session_state.page == "hospital":
     for idx, d in enumerate(DISEASES):
         with cols[idx % 2]:
             st.session_state.hospital_treats[hospital][d] = st.checkbox(
-                d,
-                value=st.session_state.hospital_treats[hospital][d],
-                key=f"{hospital}_{d}",
+                d, value=st.session_state.hospital_treats[hospital][d], key=f"{hospital}_{d}"
             )
     st.markdown("</div>", unsafe_allow_html=True)
 
@@ -425,6 +348,7 @@ elif st.session_state.page == "hospital":
 
     st.pydeck_chart(pdk.Deck(layers=[hospital_layer], initial_view_state=view))
     st.markdown("</div>", unsafe_allow_html=True)
+
 
 # ==========================================================
 #                    구급차 모드
