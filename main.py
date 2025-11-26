@@ -16,7 +16,6 @@ try:
 except ImportError:
     GEO_AVAILABLE = False
 
-
 # ------------------------------------------
 # 기본 설정
 # ------------------------------------------
@@ -30,7 +29,6 @@ DEFAULT_START_NAME_EN = "Hana High School"
 
 HOTLINE = "010-9053-0540"
 
-
 # ------------------------------------------
 # 다국어 텍스트
 # ------------------------------------------
@@ -41,9 +39,6 @@ TEXT = {
         "lang_label": "언어 선택 / Language",
         "mode_hospital": "🏥 병원 모드",
         "mode_ambulance": "🚑 구급차 모드",
-        "home_pill1": "하나고 출발 기준",
-        "home_pill2": "도로 기준 최적 경로",
-        "home_pill3": "병원 수용 가능 병명 사전 체크",
         "home_hint": "사용할 모드를 선택해 주세요.",
         "back_home": "⬅ 홈으로",
         "hospital_title": "🏥 병원 모드",
@@ -70,7 +65,6 @@ TEXT = {
         "no_hospital_row": "병원 없음",
         "selected_hospital": "선택된 병원",
         "addr": "주소",
-        "contact_title": "연락 및 핫라인",
         "hotline_title": "응급 핫라인",
         "map_title": "지도 및 길안내",
         "distance_eta": "도로 기준 거리: {dist} km, 예상 소요 시간: {eta} 분",
@@ -87,9 +81,6 @@ TEXT = {
         "lang_label": "Language / 언어 선택",
         "mode_hospital": "🏥 Hospital Mode",
         "mode_ambulance": "🚑 Ambulance Mode",
-        "home_pill1": "Origin: Hana High School",
-        "home_pill2": "Road-based optimal route",
-        "home_pill3": "Pre-check hospital capability",
         "home_hint": "Please choose a mode.",
         "back_home": "⬅ Back to Home",
         "hospital_title": "🏥 Hospital Mode",
@@ -116,7 +107,6 @@ TEXT = {
         "no_hospital_row": "No hospital",
         "selected_hospital": "Selected hospital",
         "addr": "Address",
-        "contact_title": "Contact & hotline",
         "hotline_title": "Emergency hotline",
         "map_title": "Map & navigation",
         "distance_eta": "Road distance: {dist} km, ETA: {eta} min",
@@ -129,13 +119,14 @@ TEXT = {
     },
 }
 
+
 def T(key: str) -> str:
     lang = st.session_state.get("lang", "ko")
     return TEXT.get(lang, TEXT["ko"]).get(key, TEXT["ko"].get(key, key))
 
 
 # ------------------------------------------
-# 병명 리스트 (발작 제거 완료)
+# 병명 리스트 (발작 제거)
 # ------------------------------------------
 DISEASES = [
     "심근경색",
@@ -248,7 +239,6 @@ HOSPITALS = {
     },
 }
 
-
 # ------------------------------------------
 # 거리 / 경로 계산
 # ------------------------------------------
@@ -297,7 +287,6 @@ if "hospital_treats" not in st.session_state:
         h: dict(info["treats_default"]) for h, info in HOSPITALS.items()
     }
 else:
-    # 새 병원/새 병명 자동 보정
     for h, info in HOSPITALS.items():
         if h not in st.session_state.hospital_treats:
             st.session_state.hospital_treats[h] = dict(info["treats_default"])
@@ -305,14 +294,12 @@ else:
             for d in DISEASES:
                 st.session_state.hospital_treats[h].setdefault(d, False)
 
-# 출발 위치 (현재 값)
 if "start_lat" not in st.session_state:
     st.session_state.start_lat = DEFAULT_LAT
     st.session_state.start_lon = DEFAULT_LON
     st.session_state.start_name_ko = DEFAULT_START_NAME_KO
     st.session_state.start_name_en = DEFAULT_START_NAME_EN
 
-# 지도에서 클릭한 후보 위치
 if "candidate_lat" not in st.session_state:
     st.session_state.candidate_lat = None
 if "candidate_lon" not in st.session_state:
@@ -328,6 +315,7 @@ def current_start_name():
 #                    HOME 화면
 # ==========================================================
 if st.session_state.page == "home":
+    # 언어 선택
     col_lang, _, _ = st.columns([1, 1, 1])
     with col_lang:
         lang_choice = st.radio(
@@ -341,18 +329,21 @@ if st.session_state.page == "home":
     col_left, col_center, col_right = st.columns([1, 2, 1])
 
     with col_center:
+        # 타이틀 카드 (pill 문구 제거 버전)
         st.markdown(
             f"""
-            <div class="hero-card" style="background:white;padding:26px 30px;border-radius:18px;
-                 box-shadow:0 8px 24px rgba(15,23,42,0.12);border:1px solid #e5e9f2;text-align:center;">
-                <div class="hero-title">{T("app_title")}</div>
-                <p class="hero-subtitle">{T("app_subtitle")}</p>
-                <div>
-                    <span class="pill">{T("home_pill1")}</span>
-                    <span class="pill">{T("home_pill2")}</span>
-                    <span class="pill">{T("home_pill3")}</span>
+            <div style="background:white;padding:26px 30px;border-radius:18px;
+                 box-shadow:0 8px 24px rgba(15,23,42,0.12);border:1px solid #e5e9f2;
+                 text-align:center;">
+                <div style="font-size:38px;font-weight:800;color:#111827;margin-bottom:6px;">
+                    {T("app_title")}
                 </div>
-                <p style="margin-top:12px;color:#6b7280;font-size:14px;">{T("home_hint")}</p>
+                <p style="font-size:17px;color:#4b5563;margin-bottom:4px;">
+                    {T("app_subtitle")}
+                </p>
+                <p style="margin-top:8px;color:#6b7280;font-size:14px;">
+                    {T("home_hint")}
+                </p>
             </div>
             """,
             unsafe_allow_html=True,
@@ -371,7 +362,6 @@ if st.session_state.page == "home":
                 st.session_state.page = "ambulance"
             st.markdown("</div>", unsafe_allow_html=True)
 
-
 # ==========================================================
 #                    병원 모드
 # ==========================================================
@@ -383,9 +373,11 @@ elif st.session_state.page == "hospital":
         if st.button(T("back_home")):
             st.session_state.page = "home"
 
-    # 병원 선택 + 체크리스트
+    # STEP1
     st.markdown(
-        f"<div class='section-card'><div class='section-title'>{T('hospital_step1')}</div>",
+        f"<div style='background:white;padding:20px 22px;border-radius:16px;"
+        f"box-shadow:0 4px 16px rgba(15,23,42,0.08);border:1px solid #e5e9f2;'>"
+        f"<div style='font-size:18px;font-weight:700;margin-bottom:8px;'>{T('hospital_step1')}</div>",
         unsafe_allow_html=True,
     )
 
@@ -397,19 +389,18 @@ elif st.session_state.page == "hospital":
     for idx, d in enumerate(DISEASES):
         with cols[idx % 2]:
             current = st.session_state.hospital_treats[hospital].get(d, False)
-            new_val = st.checkbox(
-                d,
-                value=current,
-                key=f"{hospital}_{d}",
-            )
+            new_val = st.checkbox(d, value=current, key=f"{hospital}_{d}")
             st.session_state.hospital_treats[hospital][d] = new_val
     st.markdown("</div>", unsafe_allow_html=True)
 
-    # 병원 정보 + 위치
+    # STEP2
     st.markdown(
-        f"<div class='section-card'><div class='section-title'>{T('hospital_step2')}</div>",
+        f"<div style='background:white;padding:20px 22px;border-radius:16px;"
+        f"box-shadow:0 4px 16px rgba(15,23,42,0.08);border:1px solid #e5e9f2;margin-top:14px;'>"
+        f"<div style='font-size:18px;font-weight:700;margin-bottom:8px;'>{T('hospital_step2')}</div>",
         unsafe_allow_html=True,
     )
+
     st.write(f"**{T('hospital_name')}:** {hospital}")
     st.write(f"**{T('hospital_addr')}:** {info['address']}")
 
@@ -439,7 +430,6 @@ elif st.session_state.page == "hospital":
     st.pydeck_chart(pdk.Deck(layers=[hospital_layer], initial_view_state=view))
     st.markdown("</div>", unsafe_allow_html=True)
 
-
 # ==========================================================
 #                    구급차 모드
 # ==========================================================
@@ -451,20 +441,18 @@ elif st.session_state.page == "ambulance":
         if st.button(T("back_home")):
             st.session_state.page = "home"
 
-    # ---------- STEP 1 : 출발 위치 설정 (기본 + GPS) ----------
+    # STEP1: 출발 위치
     st.markdown(
-        f"<div class='section-card'><div class='section-title'>{T('amb_step1')}</div>",
+        f"<div style='background:white;padding:20px 22px;border-radius:16px;"
+        f"box-shadow:0 4px 16px rgba(15,23,42,0.08);border:1px solid #e5e9f2;'>"
+        f"<div style='font-size:18px;font-weight:700;margin-bottom:8px;'>{T('amb_step1')}</div>",
         unsafe_allow_html=True,
     )
 
-    # 기본 출발지 설명
     default_name = (
         DEFAULT_START_NAME_KO if st.session_state.lang == "ko" else DEFAULT_START_NAME_EN
     )
     st.write(f"{T('default_start')}: **{default_name}**")
-
-    start_lat = st.session_state.start_lat
-    start_lon = st.session_state.start_lon
 
     if GEO_AVAILABLE:
         st.info(T("gps_info"))
@@ -489,17 +477,21 @@ elif st.session_state.page == "ambulance":
 
     st.markdown("</div>", unsafe_allow_html=True)
 
-    # ---------- STEP 2 : 병명 선택 ----------
+    # STEP2: 병명 선택
     st.markdown(
-        f"<div class='section-card'><div class='section-title'>{T('amb_step2')}</div>",
+        f"<div style='background:white;padding:20px 22px;border-radius:16px;"
+        f"box-shadow:0 4px 16px rgba(15,23,42,0.08);border:1px solid #e5e9f2;margin-top:14px;'>"
+        f"<div style='font-size:18px;font-weight:700;margin-bottom:8px;'>{T('amb_step2')}</div>",
         unsafe_allow_html=True,
     )
     disease = st.radio(T("disease_prompt"), DISEASES, horizontal=True)
     st.markdown("</div>", unsafe_allow_html=True)
 
-    # ---------- STEP 3 : 수용 가능 병원 필터링 + 선택 ----------
+    # STEP3: 수용 가능 병원 필터링 + 선택
     st.markdown(
-        f"<div class='section-card'><div class='section-title'>{T('amb_step3')}</div>",
+        f"<div style='background:white;padding:20px 22px;border-radius:16px;"
+        f"box-shadow:0 4px 16px rgba(15,23,42,0.08);border:1px solid #e5e9f2;margin-top:14px;'>"
+        f"<div style='font-size:18px;font-weight:700;margin-bottom:8px;'>{T('amb_step3')}</div>",
         unsafe_allow_html=True,
     )
 
@@ -568,9 +560,11 @@ elif st.session_state.page == "ambulance":
     )
     st.markdown("</div>", unsafe_allow_html=True)
 
-    # ---------- STEP 4 : 연락 및 핫라인 ----------
+    # STEP4: 연락/핫라인
     st.markdown(
-        f"<div class='section-card'><div class='section-title'>{T('amb_step4')}</div>",
+        f"<div style='background:white;padding:20px 22px;border-radius:16px;"
+        f"box-shadow:0 4px 16px rgba(15,23,42,0.08);border:1px solid #e5e9f2;margin-top:14px;'>"
+        f"<div style='font-size:18px;font-weight:700;margin-bottom:8px;'>{T('amb_step4')}</div>",
         unsafe_allow_html=True,
     )
 
@@ -615,9 +609,11 @@ elif st.session_state.page == "ambulance":
 
     st.markdown("</div>", unsafe_allow_html=True)
 
-    # ---------- STEP 5 : 지도 + 클릭 출발지 + 네이버 길찾기 ----------
+    # STEP5: 지도 + 클릭 출발지 + 네이버 길찾기
     st.markdown(
-        f"<div class='section-card'><div class='section-title'>{T('amb_step5')}</div>",
+        f"<div style='background:white;padding:20px 22px;border-radius:16px;"
+        f"box-shadow:0 4px 16px rgba(15,23,42,0.08);border:1px solid #e5e9f2;margin-top:14px;'>"
+        f"<div style='font-size:18px;font-weight:700;margin-bottom:8px;'>{T('amb_step5')}</div>",
         unsafe_allow_html=True,
     )
 
@@ -634,9 +630,10 @@ elif st.session_state.page == "ambulance":
     st.write(T("start_from").format(name=current_start_name()))
     st.info(T("map_click_hint"))
 
-    # folium 지도 생성
+    # 지도 중심 좌표 (여기가 빠져 있으면 NameError 발생)
     center_lat = (st.session_state.start_lat + sel["lat"]) / 2
     center_lon = (st.session_state.start_lon + sel["lon"]) / 2
+
     fmap = folium.Map(location=[center_lat, center_lon], zoom_start=13)
 
     # 출발지 마커
@@ -649,7 +646,7 @@ elif st.session_state.page == "ambulance":
         popup=current_start_name(),
     ).add_to(fmap)
 
-    # 도착 병원 마커
+    # 도착지 마커
     folium.CircleMarker(
         location=[sel["lat"], sel["lon"]],
         radius=9,
@@ -668,7 +665,7 @@ elif st.session_state.page == "ambulance":
         opacity=0.8,
     ).add_to(fmap)
 
-    # 후보 출발지 마커 (이미 선택된 게 있으면)
+    # 후보 출발지 마커
     if st.session_state.candidate_lat is not None and st.session_state.candidate_lon is not None:
         folium.CircleMarker(
             location=[st.session_state.candidate_lat, st.session_state.candidate_lon],
@@ -681,13 +678,13 @@ elif st.session_state.page == "ambulance":
 
     map_data = st_folium(fmap, height=420, width="100%")
 
-    # 지도 클릭 처리 → 후보 위치 저장
+    # 지도 클릭 → 후보 위치 저장
     if map_data and map_data.get("last_clicked"):
         cl = map_data["last_clicked"]
         st.session_state.candidate_lat = cl["lat"]
         st.session_state.candidate_lon = cl["lng"]
 
-    # 후보 위치가 있으면 표시 & 출발지 설정 버튼
+    # 후보 위치 정보 + 출발지로 확정 버튼
     if st.session_state.candidate_lat is not None and st.session_state.candidate_lon is not None:
         st.markdown(
             T("map_click_selected").format(
@@ -698,7 +695,6 @@ elif st.session_state.page == "ambulance":
         if st.button(T("map_click_set_button")):
             st.session_state.start_lat = st.session_state.candidate_lat
             st.session_state.start_lon = st.session_state.candidate_lon
-            # 이름 변경
             if st.session_state.lang == "ko":
                 st.session_state.start_name_ko = "지도에서 선택한 위치"
                 st.session_state.start_name_en = "Selected point on map"
@@ -706,18 +702,16 @@ elif st.session_state.page == "ambulance":
                 st.session_state.start_name_en = "Selected point on map"
                 st.session_state.start_name_ko = "지도에서 선택한 위치"
             st.success("출발지가 지도에서 선택한 위치로 변경되었습니다.")
-            # 후보 초기화
             st.session_state.candidate_lat = None
             st.session_state.candidate_lon = None
 
-    # 네이버 지도 길찾기 링크 생성
+    # 네이버 지도 길찾기 링크
     start_lat = st.session_state.start_lat
     start_lon = st.session_state.start_lon
     start_name = current_start_name()
     dest_lat = sel["lat"]
     dest_lon = sel["lon"]
 
-    # 앱용 (모바일 네이버 지도)
     nmap_url = (
         "nmap://route/car?"
         f"slat={start_lat}&slng={start_lon}&sname={start_name}&"
@@ -725,7 +719,6 @@ elif st.session_state.page == "ambulance":
         "appname=goldentime"
     )
 
-    # 웹용 (브라우저 네이버 지도)
     web_url = (
         "https://map.naver.com/v5/directions/-/-/"
         f"{start_lon},{start_lat}/{dest_lon},{dest_lat}/0?c=14,0,0,0,dh"
