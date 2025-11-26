@@ -4,3 +4,4 @@ pydeck
 requests
 streamlit-aggrid
 streamlit-geolocation
+streamlit-javascript
