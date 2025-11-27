@@ -96,37 +96,24 @@ st.markdown(
 )
 
 # ------------------------------------------
-# 병명 리스트 (발작 제거)
+# 병명 리스트
 # ------------------------------------------
 DISEASES = [
-    "심근경색",
-    "뇌출혈",
-    "뇌진탕",
-    "심장마비",
-    "뇌졸중",
-    "급성 복막염",
-    "기흉",
-    "폐색전증",
-    "패혈증",
-    "급성 심부전",
-    "뇌수막염",
-    "대량 위장관 출혈",
-    "아나필락시스",
+    "심근경색", "뇌출혈", "뇌진탕", "심장마비", "뇌졸중",
+    "급성 복막염", "기흉", "폐색전증", "패혈증", "급성 심부전",
+    "뇌수막염", "대량 위장관 출혈", "아나필락시스",
 ]
-
 
 def empty_treats():
     return {d: False for d in DISEASES}
-
 
 def with_defaults(custom_dict):
     base = empty_treats()
     base.update(custom_dict)
     return base
 
-
 # ------------------------------------------
-# 병원 데이터 (추가 병원 포함, 발작 제거 반영)
+# 병원 데이터
 # ------------------------------------------
 HOSPITALS = {
     "은평 연세 병원": {
@@ -135,9 +122,7 @@ HOSPITALS = {
         "address": "서울특별시 은평구 연서로 177",
         "phone": "02-111-2222",
         "website": "https://eph.yonsei.ac.kr",
-        "treats_default": with_defaults(
-            {"뇌진탕": True, "뇌졸중": True}
-        ),
+        "treats_default": with_defaults({"뇌진탕": True, "뇌졸중": True}),
     },
     "가톨릭대 은평 성모병원": {
         "lat": 37.6370,
@@ -146,8 +131,7 @@ HOSPITALS = {
         "phone": "02-222-3333",
         "website": "https://www.cmcseoul.or.kr",
         "treats_default": with_defaults(
-            {"심근경색": True, "뇌출혈": True, "뇌졸중": True, "심장마비": True}
-        ),
+            {"심근경색": True, "뇌출혈": True, "뇌졸중": True, "심장마비": True}),
     },
     "서울 특별시 은평병원": {
         "lat": 37.5940039,
@@ -156,8 +140,7 @@ HOSPITALS = {
         "phone": "02-444-5555",
         "website": "http://epmhc.or.kr",
         "treats_default": with_defaults(
-            {"뇌출혈": True, "뇌진탕": True, "뇌졸중": True}
-        ),
+            {"뇌출혈": True, "뇌진탕": True, "뇌졸중": True}),
     },
     "본 서부병원": {
         "lat": 37.6050,
@@ -165,9 +148,7 @@ HOSPITALS = {
         "address": "서울특별시 은평구 은평로 133",
         "phone": "02-666-7777",
         "website": "http://seobuhospital.co.kr",
-        "treats_default": with_defaults(
-            {"심근경색": True, "뇌진탕": True}
-        ),
+        "treats_default": with_defaults({"심근경색": True, "뇌진탕": True}),
     },
     "청구 성심 병원": {
         "lat": 37.6290,
@@ -176,8 +157,7 @@ HOSPITALS = {
         "phone": "02-777-8888",
         "website": "http://www.chunggu.co.kr",
         "treats_default": with_defaults(
-            {"심근경색": True, "뇌출혈": True, "뇌졸중": True, "심장마비": True}
-        ),
+            {"심근경색": True, "뇌출혈": True, "뇌졸중": True, "심장마비": True}),
     },
     "성누가병원": {
         "lat": 37.6099,
@@ -186,8 +166,7 @@ HOSPITALS = {
         "phone": "02-888-9999",
         "website": "https://example-snugcah.or.kr",
         "treats_default": with_defaults(
-            {"심근경색": True, "뇌졸중": True, "뇌출혈": True}
-        ),
+            {"심근경색": True, "뇌졸중": True, "뇌출혈": True}),
     },
     "리드힐병원": {
         "lat": 37.6203,
@@ -196,8 +175,7 @@ HOSPITALS = {
         "phone": "02-555-6666",
         "website": "https://example-leadhill.or.kr",
         "treats_default": with_defaults(
-            {"심근경색": True, "기흉": True, "폐색전증": True}
-        ),
+            {"심근경색": True, "기흉": True, "폐색전증": True}),
     },
     "연세노블병원": {
         "lat": 37.6018,
@@ -206,23 +184,22 @@ HOSPITALS = {
         "phone": "02-999-0000",
         "website": "https://example-ynoble.or.kr",
         "treats_default": with_defaults(
-            {"뇌졸중": True, "뇌출혈": True, "뇌수막염": True}
-        ),
+            {"뇌졸중": True, "뇌출혈": True, "뇌수막염": True}),
     },
 }
 
 # ------------------------------------------
-# 거리 / 경로 계산
+# 거리 계산
 # ------------------------------------------
 def haversine(lat1, lon1, lat2, lon2):
     R = 6371
     dlat = math.radians(lat2 - lat1)
     dlon = math.radians(lon2 - lon1)
     a = (
-        math.sin(dlat / 2) ** 2
+        math.sin(dlat / 2)**2
         + math.cos(math.radians(lat1))
         * math.cos(math.radians(lat2))
-        * math.sin(dlon / 2) ** 2
+        * math.sin(dlon / 2)**2
     )
     return 2 * R * math.asin(math.sqrt(a))
 
@@ -244,9 +221,8 @@ def get_route_osrm(lat1, lon1, lat2, lon2):
         d = haversine(lat1, lon1, lat2, lon2)
         return d, d / 50 * 60, [[lon1, lat1], [lon2, lat2]]
 
-
 # ------------------------------------------
-# 세션 상태 초기화 + 구조 보정 (KeyError 방지)
+# 세션 상태
 # ------------------------------------------
 if "page" not in st.session_state:
     st.session_state.page = "home"
@@ -255,18 +231,9 @@ if "hospital_treats" not in st.session_state:
     st.session_state.hospital_treats = {
         h: dict(info["treats_default"]) for h, info in HOSPITALS.items()
     }
-else:
-    # 새로 추가된 병원 / 병명 자동 보정
-    for h, info in HOSPITALS.items():
-        if h not in st.session_state.hospital_treats:
-            st.session_state.hospital_treats[h] = dict(info["treats_default"])
-        else:
-            for d in DISEASES:
-                st.session_state.hospital_treats[h].setdefault(d, False)
-
 
 # ==========================================================
-#                    HOME 화면 (단순 버전)
+# HOME 화면
 # ==========================================================
 if st.session_state.page == "home":
     col_left, col_center, col_right = st.columns([1, 2, 1])
@@ -301,7 +268,7 @@ if st.session_state.page == "home":
             st.markdown("</div>", unsafe_allow_html=True)
 
 # ==========================================================
-#                    병원 모드
+# 병원 모드
 # ==========================================================
 elif st.session_state.page == "hospital":
     top_left, top_right = st.columns([4, 1])
@@ -311,9 +278,9 @@ elif st.session_state.page == "hospital":
         if st.button("⬅ 홈으로"):
             st.session_state.page = "home"
 
-    # 병원 선택 + 체크리스트
+    # 병원 선택
     st.markdown('<div class="section-card">', unsafe_allow_html=True)
-    st.markdown('<div class="section-title">1. 병원 선택 및 수용 가능 병명 설정</div>', unsafe_allow_html=True)
+    st.markdown('<div class="section-title">1. 병원 선택 및 병명 설정</div>', unsafe_allow_html=True)
 
     hospital = st.selectbox("병원을 선택하세요.", list(HOSPITALS.keys()))
     info = HOSPITALS[hospital]
@@ -329,9 +296,10 @@ elif st.session_state.page == "hospital":
                 key=f"{hospital}_{d}",
             )
             st.session_state.hospital_treats[hospital][d] = new_val
+
     st.markdown("</div>", unsafe_allow_html=True)
 
-    # 병원 정보 + 위치
+    # 병원 정보
     st.markdown('<div class="section-card">', unsafe_allow_html=True)
     st.markdown('<div class="section-title">2. 병원 정보</div>', unsafe_allow_html=True)
     st.write(f"**병원명:** {hospital}")
@@ -364,7 +332,7 @@ elif st.session_state.page == "hospital":
     st.markdown("</div>", unsafe_allow_html=True)
 
 # ==========================================================
-#                    구급차 모드
+# 구급차 모드
 # ==========================================================
 elif st.session_state.page == "ambulance":
     top_left, top_right = st.columns([4, 1])
@@ -374,7 +342,7 @@ elif st.session_state.page == "ambulance":
         if st.button("⬅ 홈으로"):
             st.session_state.page = "home"
 
-    # ---------- 출발 위치 설정 (GPS + 기본 하나고) ----------
+    # 1. 출발 위치
     st.markdown('<div class="section-card">', unsafe_allow_html=True)
     st.markdown('<div class="section-title">1. 출발 위치 선택</div>', unsafe_allow_html=True)
 
@@ -385,7 +353,7 @@ elif st.session_state.page == "ambulance":
     st.write(f"기본 출발지: **{DEFAULT_START_NAME} (은평구 연서로 535)**")
 
     if GEO_AVAILABLE:
-        st.info("📡 GPS 버튼을 누르면 현재 기기 위치를 사용합니다. (브라우저에서 위치 권한 허용 필요)")
+        st.info("📡 GPS 버튼을 누르면 현재 기기 위치를 사용합니다.")
         if st.button("📍 GPS로 현재 위치 가져오기"):
             loc = streamlit_geolocation()
             if isinstance(loc, dict) and loc.get("latitude") and loc.get("longitude"):
@@ -395,21 +363,19 @@ elif st.session_state.page == "ambulance":
                 st.success(f"현재 위치 사용: 위도 {start_lat:.5f}, 경도 {start_lon:.5f}")
             else:
                 st.warning("위치 정보를 가져오지 못했습니다. 기본 위치(하나고)를 계속 사용합니다.")
-    else:
-        st.info("⚠ GPS 기능을 사용하려면 `streamlit-geolocation` 패키지를 설치해야 합니다.\n\n`pip install streamlit-geolocation` 후 requirements.txt 에도 추가해 주세요.")
-
     st.markdown("</div>", unsafe_allow_html=True)
 
-    # ---------- 병명 선택 ----------
+    # 2. 병명
     st.markdown('<div class="section-card">', unsafe_allow_html=True)
     st.markdown('<div class="section-title">2. 병명 선택</div>', unsafe_allow_html=True)
+
     disease = st.radio("환자의 병명을 선택하세요.", DISEASES, horizontal=True)
+
     st.markdown("</div>", unsafe_allow_html=True)
 
-    # ---------- 수용 가능 병원 필터링 ----------
+    # 3. 치료 가능 병원 필터링
     candidates = []
     for h, i in HOSPITALS.items():
-        # KeyError 방지를 위해 get 사용
         can_treat = st.session_state.hospital_treats.get(h, {}).get(disease, False)
         if can_treat:
             dist, eta, _ = get_route_osrm(start_lat, start_lon, i["lat"], i["lon"])
@@ -426,7 +392,7 @@ elif st.session_state.page == "ambulance":
                 }
             )
 
-    # ---------- 병원 선택 테이블 ----------
+    # 병원 선택 테이블
     st.markdown('<div class="section-card">', unsafe_allow_html=True)
     st.markdown('<div class="section-title">3. 수용 가능 병원 선택</div>', unsafe_allow_html=True)
 
@@ -448,22 +414,15 @@ elif st.session_state.page == "ambulance":
     grid = AgGrid(
         display_df,
         gridOptions=gob.build(),
-        update_mode=GridUpdateMode.SELECTION_CHANGED | GridUpdateMode.MODEL_CHANGED,
+        update_mode=GridUpdateMode.SELECTION_CHANGED,
         height=260,
         theme="balham",
     )
 
     raw_sel = grid.get("selected_rows", [])
 
-    if isinstance(raw_sel, pd.DataFrame):
-        selected_rows = raw_sel.to_dict("records")
-    elif isinstance(raw_sel, list):
-        selected_rows = raw_sel
-    else:
-        selected_rows = []
-
-    if len(selected_rows) > 0:
-        selected_name = selected_rows[0]["병원"]
+    if isinstance(raw_sel, list) and len(raw_sel) > 0:
+        selected_name = raw_sel[0]["병원"]
     else:
         selected_name = df.iloc[0]["병원"]
 
@@ -471,11 +430,12 @@ elif st.session_state.page == "ambulance":
 
     st.markdown(
         f"**선택된 병원:** `{selected_name}` · 거리 약 **{sel['거리(km)']} km**, "
-        f"예상 **{sel['도착예상(분)']} 분**",
+        f"예상 **{sel['도착예상(분)']} 분**"
     )
+
     st.markdown("</div>", unsafe_allow_html=True)
 
-    # ---------- 연락 / 핫라인 ----------
+    # 4. 연락
     st.markdown('<div class="section-card">', unsafe_allow_html=True)
     st.markdown('<div class="section-title">4. 연락 및 핫라인</div>', unsafe_allow_html=True)
 
@@ -520,87 +480,97 @@ elif st.session_state.page == "ambulance":
 
     st.markdown("</div>", unsafe_allow_html=True)
 
-    # ---------- 지도 + 네이버 길찾기 ----------
+    # 5. 지도 (Google Maps)
     st.markdown('<div class="section-card">', unsafe_allow_html=True)
     st.markdown('<div class="section-title">5. 지도 및 길안내</div>', unsafe_allow_html=True)
 
-    dist, eta, path = get_route_osrm(
-        start_lat, start_lon, sel["lat"], sel["lon"]
-    )
+    dist, eta, path = get_route_osrm(start_lat, start_lon, sel["lat"], sel["lon"])
 
     st.write(
         f"🛣 도로 기준 거리: **{round(dist,2)} km**, 예상 소요 시간: **{round(eta,1)} 분**"
     )
     st.write(f"출발지: **{start_name}**")
 
-    ambulance_layer = pdk.Layer(
-        "ScatterplotLayer",
-        data=[{"lat": start_lat, "lon": start_lon}],
-        get_position="[lon, lat]",
-        get_radius=320,
-        get_color=[37, 99, 235],
-    )
+    GOOGLE_MAPS_API_KEY = "YOUR_GOOGLE_MAP_API_KEY"
 
-    hospital_layer = pdk.Layer(
-        "ScatterplotLayer",
-        data=[{"lat": sel["lat"], "lon": sel["lon"]}],
-        get_position="[lon, lat]",
-        get_radius=340,
-        get_color=[239, 68, 68],
-    )
+    google_map_html = f"""
+    <div id="map" style="height:520px; width:100%; border-radius:16px;"></div>
 
-    path_layer = pdk.Layer(
-        "PathLayer",
-        data=[{"path": path}],
-        get_path="path",
-        get_width=6,
-        get_color=[16, 185, 129],
-    )
+    <script>
+    function initMap() {{
+        const start = {{ lat: {start_lat}, lng: {start_lon} }};
+        const end = {{ lat: {sel['lat']}, lng: {sel['lon']} }};
 
-    st.pydeck_chart(
-        pdk.Deck(
-            layers=[ambulance_layer, hospital_layer, path_layer],
-            initial_view_state=pdk.ViewState(
-                latitude=(start_lat + sel["lat"]) / 2,
-                longitude=(start_lon + sel["lon"]) / 2,
-                zoom=13,
-            ),
-            tooltip={"text": "응급 이송 경로"},
-        )
-    )
+        const map = new google.maps.Map(document.getElementById("map"), {{
+            zoom: 13,
+            center: start,
+            mapTypeId: 'roadmap',
+            styles: [
+                {{
+                    "featureType": "all",
+                    "elementType": "geometry",
+                    "stylers": [{{ "color": "#eaeff5" }}]
+                }},
+                {{
+                    "featureType": "road",
+                    "elementType": "geometry",
+                    "stylers": [{{ "color": "#c7d2fe" }}]
+                }},
+                {{
+                    "featureType": "water",
+                    "elementType": "geometry",
+                    "stylers": [{{ "color": "#93c5fd" }}]
+                }}
+            ]
+        }});
 
-    # 네이버 지도 길찾기 (앱용 nmap://)
-    nmap_url = (
-        "nmap://route/car?"
-        f"slat={start_lat}&slng={start_lon}&sname={start_name}&"
-        f"dlat={sel['lat']}&dlng={sel['lon']}&dname={selected_name}&"
-        "appname=goldentime"
-    )
+        const routePath = new google.maps.Polyline({{
+            path: [
+                {",".join([f"{{ lat: {lat}, lng: {lng} }}" for lng, lat in path])}
+            ],
+            geodesic: true,
+            strokeColor: "#10b981",
+            strokeOpacity: 1.0,
+            strokeWeight: 5,
+        }});
 
-    # 웹 브라우저용 네이버 지도 (fallback)
-    web_url = (
-        "https://map.naver.com/v5/directions/-/-/"
-        f"{start_lon},{start_lat}/{sel['lon']},{sel['lat']}/0?c=14,0,0,0,dh"
-    )
+        routePath.setMap(map);
 
-    st.markdown(
-        f"""
-        <div style="display:flex;flex-wrap:wrap;gap:10px;margin-top:10px;">
-            <a href="{nmap_url}">
-                <button style="padding:9px 18px;background:#03C75A;color:white;
-                               border:none;border-radius:999px;font-size:15px;">
-                    🧭 네이버 지도 앱으로 길찾기
-                </button>
-            </a>
-            <a href="{web_url}" target="_blank">
-                <button style="padding:9px 18px;background:#111827;color:white;
-                               border:none;border-radius:999px;font-size:15px;">
-                    🌐 브라우저에서 네이버 지도 열기
-                </button>
-            </a>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
+        new google.maps.Marker({{
+            position: start,
+            map,
+            title: "출발지",
+            icon: {{
+                path: google.maps.SymbolPath.CIRCLE,
+                scale: 8,
+                fillColor: "#2563eb",
+                fillOpacity: 1,
+                strokeColor: "#1e3a8a",
+                strokeWeight: 2
+            }}
+        }});
+
+        new google.maps.Marker({{
+            position: end,
+            map,
+            title: "도착지",
+            icon: {{
+                path: google.maps.SymbolPath.CIRCLE,
+                scale: 8,
+                fillColor: "#ef4444",
+                fillOpacity: 1,
+                strokeColor: "#991b1b",
+                strokeWeight: 2
+            }}
+        }});
+    }}
+    </script>
+
+    <script async
+    src="https://maps.googleapis.com/maps/api/js?key={GOOGLE_MAPS_API_KEY}&callback=initMap">
+    </script>
+    """
+
+    st.components.v1.html(google_map_html, height=530)
 
     st.markdown("</div>", unsafe_allow_html=True)
