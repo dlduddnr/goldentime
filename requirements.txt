@@ -1,5 +1,5 @@
-streamlit
-pandas
+streamlit==1.32.0
+pandas==1.5.3
 requests
 pydeck==0.8.0
 streamlit-aggrid==0.3.3
