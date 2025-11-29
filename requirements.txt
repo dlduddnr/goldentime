@@ -3,3 +3,4 @@ pandas==1.5.3
 requests
 pydeck==0.8.0
 streamlit-aggrid==0.3.3
+GOOGLE_MAPS_API_KEY = "YOUR_GOOGLE_MAP_API_KEY"
