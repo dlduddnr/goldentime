@@ -1,6 +1,8 @@
-streamlit==1.32.0
-pandas==1.5.3
+streamlit
+pydeck
+pandas
 requests
-pydeck==0.8.0
-streamlit-aggrid==0.3.3
-https://maps.googleapis.com/maps/api/js?key="AIzaSyDz_3LHUOKvxcviUYlQGg9l2RsNwHTn57k"
+streamlit-aggrid
+folium
+streamlit-folium
+streamlit-geolocation   # 선택, GPS 쓰려면
