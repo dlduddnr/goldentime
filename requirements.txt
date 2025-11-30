@@ -3,3 +3,4 @@ pandas==1.5.3
 requests
 pydeck==0.8.0
 streamlit-aggrid==0.3.3
+https://maps.googleapis.com/maps/api/js?key=AIzaSyDz_3LHUOKvxcviUYlQGg9l2RsNwHTn57k
