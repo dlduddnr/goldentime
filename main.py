@@ -428,7 +428,7 @@ elif st.session_state.page == "ambulance":
             st.session_state.page = "home"
 
     # -----------------------------------------------------
-    # 1. 출발 위치 (GPS or 기본 하나고)
+    # 1. 출발 위치
     # -----------------------------------------------------
     st.markdown('<div class="section-card">', unsafe_allow_html=True)
     st.markdown('<div class="section-title">1. 출발 위치 선택</div>', unsafe_allow_html=True)
@@ -449,11 +449,9 @@ elif st.session_state.page == "ambulance":
                 start_name = "현재 위치"
                 st.success(f"현재 위치 사용: 위도 {start_lat:.5f}, 경도 {start_lon:.5f}")
             else:
-                st.warning("위치 정보를 가져오지 못했습니다. 기본 위치를 사용합니다.")
+                st.warning("위치 정보를 가져오지 못했습니다.")
     else:
-        st.info("""
-        ⚠ GPS 기능을 사용하려면 `pip install streamlit-geolocation` 설치해야 합니다.
-        """)
+        st.info("⚠ GPS 기능을 사용하려면 streamlit-geolocation 설치가 필요합니다.")
 
     st.markdown("</div>", unsafe_allow_html=True)
 
@@ -474,10 +472,9 @@ elif st.session_state.page == "ambulance":
 
     for h, i in HOSPITALS.items():
 
-        # 병명 체크
         can_treat = st.session_state.hospital_treats.get(h, {}).get(disease, False)
 
-        # 병명 → 필요한 시술 매칭
+        # 병명 → 필요한 시술 매핑
         required_procs = []
         if disease == "뇌출혈":
             required_procs = ["뇌출혈 개두술"]
@@ -532,8 +529,17 @@ elif st.session_state.page == "ambulance":
         theme="balham",
     )
 
+    # ------------------------------
+    # 🔥 오류 해결된 선택 로직
+    # ------------------------------
     selected_rows = grid.get("selected_rows", [])
-    if selected_rows:
+
+    # DataFrame이면 리스트로 변환
+    if isinstance(selected_rows, pd.DataFrame):
+        selected_rows = selected_rows.to_dict("records")
+
+    # 길이 기반 체크 (if selected_rows ❌)
+    if len(selected_rows) > 0:
         selected_name = selected_rows[0]["병원"]
     else:
         selected_name = df.iloc[0]["병원"]
@@ -596,7 +602,7 @@ elif st.session_state.page == "ambulance":
     st.markdown("</div>", unsafe_allow_html=True)
 
     # -----------------------------------------------------
-    # 6. TMAP 지도 + 길찾기 + 마커 + Polyline
+    # 6. TMAP 지도 (길찾기 + 경로선 + 마커)
     # -----------------------------------------------------
     st.markdown('<div class="section-card">', unsafe_allow_html=True)
     st.markdown('<div class="section-title">5. 지도 및 길안내 (Tmap)</div>', unsafe_allow_html=True)
@@ -606,7 +612,6 @@ elif st.session_state.page == "ambulance":
     end_lat_js = sel["lat"]
     end_lon_js = sel["lon"]
 
-    # ⭐⭐⭐ Tmap HTML + JS 전체 코드 (마커 + 경로선 정상 표시)
     html_route = f"""
     <div id="route_map" style="width:100%; height:400px;"></div>
 
@@ -625,23 +630,18 @@ elif st.session_state.page == "ambulance":
             zoom: 13
         }});
 
-        // 출발지 마커
         new Tmapv2.Marker({{
             position: new Tmapv2.LatLng(startLat, startLon),
             icon: "http://tmapapi.sktelecom.com/upload/tmap/marker/pin_r_m_s.png",
             map: map
         }});
 
-        // 도착지 마커
         new Tmapv2.Marker({{
             position: new Tmapv2.LatLng(endLat, endLon),
             icon: "http://tmapapi.sktelecom.com/upload/tmap/marker/pin_r_m_e.png",
             map: map
         }});
 
-        // ------------------------
-        // 🚗 Tmap 경로 API 호출
-        // ------------------------
         function route() {{
             fetch("https://apis.openapi.sk.com/tmap/routes?version=1&format=json", {{
                 method: "POST",
@@ -664,9 +664,6 @@ elif st.session_state.page == "ambulance":
             .catch(err => console.log(err));
         }}
 
-        // ------------------------
-        // 🚗 Polyline 그리기
-        // ------------------------
         function drawRoute(data) {{
             var lineArr = [];
             var features = data.features;
