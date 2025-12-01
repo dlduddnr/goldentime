@@ -648,33 +648,84 @@ elif st.session_state.page == "ambulance":
     end_lon_js = sel["lon"]
 
     html_route = f"""
-    <div id="route_map" style="width:100%; height:400px;"></div>
+<div id="route_map" style="width:100%; height:400px;"></div>
 
-    <script src="https://apis.openapi.sk.com/tmap/jsv2?version=1&appKey={TMAP_API_KEY}"></script>
+<script src="https://apis.openapi.sk.com/tmap/jsv2?version=1&appKey={TMAP_API_KEY}"></script>
 
-    <script>
-        var map = new Tmapv2.Map("route_map", {{
-            center: new Tmapv2.LatLng({(start_lat_js + end_lat_js) / 2},
-                                      {(start_lon_js + end_lon_js) / 2}),
-            width: "100%",
-            height: "400px",
-            zoom: 13
-        }});
+<script>
+    var startLat = {start_lat_js};
+    var startLon = {start_lon_js};
+    var endLat = {end_lat_js};
+    var endLon = {end_lon_js};
 
-        new Tmapv2.Marker({{
-            position: new Tmapv2.LatLng({start_lat_js}, {start_lon_js}),
-            icon: "http://tmapapi.sktelecom.com/upload/tmap/marker/pin_r_m_s.png",
-            map: map
-        }});
+    // 지도 생성
+    var map = new Tmapv2.Map("route_map", {{
+        center: new Tmapv2.LatLng((startLat + endLat) / 2, (startLon + endLon) / 2),
+        width: "100%",
+        height: "400px",
+        zoom: 13
+    }});
 
-        new Tmapv2.Marker({{
-            position: new Tmapv2.LatLng({end_lat_js}, {end_lon_js}),
-            icon: "http://tmapapi.sktelecom.com/upload/tmap/marker/pin_r_m_e.png",
-            map: map
-        }});
-    </script>
-    """
+    // 출발지 마커
+    new Tmapv2.Marker({{
+        position: new Tmapv2.LatLng(startLat, startLon),
+        icon: "http://tmapapi.sktelecom.com/upload/tmap/marker/pin_r_m_s.png",
+        map: map
+    }});
 
-    st.components.v1.html(html_route, height=400)
+    // 도착지 마커
+    new Tmapv2.Marker({{
+        position: new Tmapv2.LatLng(endLat, endLon),
+        icon: "http://tmapapi.sktelecom.com/upload/tmap/marker/pin_r_m_e.png",
+        map: map
+    }});
 
-    st.markdown("</div>", unsafe_allow_html=True)
+    // -------------------------
+    // 🚗 Tmap 길찾기 API 호출
+    // -------------------------
+    var routeData = new Tmapv2.extension.TData();
+
+    routeData.getRoutePlanJson({{
+        reqCoordType: "WGS84GEO",
+        resCoordType: "WGS84GEO",
+        startX: startLon,
+        startY: startLat,
+        endX: endLon,
+        endY: endLat,
+        angle: "172",
+        speed: "60",
+        searchOption: "0",   // 0=추천, 4=최단거리, 10=최소시간
+        trafficInfo: "Y",
+        callback: function(result) {{
+            var features = result.features;
+
+            var drawInfoArr = [];
+
+            for (var i in features) {{
+                var geometry = features[i].geometry;
+                var properties = features[i].properties;
+
+                if (geometry.type === "LineString") {{
+                    for (var j in geometry.coordinates) {{
+                        var latLng = new Tmapv2.LatLng(
+                            geometry.coordinates[j][1],
+                            geometry.coordinates[j][0]
+                        );
+                        drawInfoArr.push(latLng);
+                    }}
+                }}
+            }}
+
+            // Polyline(길찾기 선) 그리기
+            new Tmapv2.Polyline({{
+                path: drawInfoArr,
+                strokeColor: "#FF0000",
+                strokeWeight: 6,
+                map: map
+            }});
+        }}
+    }});
+</script>
+"""
+
+st.components.v1.html(html_route, height=400)
