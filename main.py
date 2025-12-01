@@ -134,8 +134,88 @@ HOSPITALS = {
         },
     },
 
-   "서울 특별시 은평병원": { "lat": 37.5940039, "lon": 126.9232331, "address": "서울특별시 은평구 백련산로 90", "phone": "02-444-5555", "website": "http://epmhc.or.kr", "treats_default": with_defaults( {"뇌출혈": True, "뇌진탕": True, "뇌졸중": True} ), }, "본 서부병원": { "lat": 37.6050, "lon": 126.9090, "address": "서울특별시 은평구 은평로 133", "phone": "02-666-7777", "website": "http://seobuhospital.co.kr", "treats_default": with_defaults( {"심근경색": True, "뇌진탕": True} ), }, "청구 성심 병원": { "lat": 37.6290, "lon": 126.9220, "address": "서울특별시 은평구 통일로 873", "phone": "02-777-8888", "website": "http://www.chunggu.co.kr", "treats_default": with_defaults( {"심근경색": True, "뇌출혈": True, "뇌졸중": True, "심장마비": True} ), }, "성누가병원": { "lat": 37.6099, "lon": 126.9293, "address": "서울특별시 은평구 281 102번지", "phone": "02-888-9999", "website": "https://example-snugcah.or.kr", "treats_default": with_defaults( {"심근경색": True, "뇌졸중": True, "뇌출혈": True} ), }, "리드힐병원": { "lat": 37.6203, "lon": 126.9299, "address": "서울특별시 은평구 연서로 10", "phone": "02-555-6666", "website": "https://example-leadhill.or.kr", "treats_default": with_defaults( {"심근경색": True, "기흉": True, "폐색전증": True} ), }, "연세노블병원": { "lat": 37.6018, "lon": 126.9270, "address": "서울특별시 은평구 녹번동 154-19", "phone": "02-999-0000", "website": "https://example-ynoble.or.kr", "treats_default": with_defaults( {"뇌졸중": True, "뇌출혈": True, "뇌수막염": True} ), }, }
-}
+      HOSPITALS.update({
+
+    "서울 특별시 은평병원": {
+        "lat": 37.5940039,
+        "lon": 126.9232331,
+        "address": "서울특별시 은평구 백련산로 90",
+        "phone": "02-444-5555",
+        "website": "http://epmhc.or.kr",
+        "treats_default": with_defaults({
+            "뇌출혈": True,
+            "뇌진탕": True,
+            "뇌졸중": True
+        }),
+    },
+
+    "본 서부병원": {
+        "lat": 37.6050,
+        "lon": 126.9090,
+        "address": "서울특별시 은평구 은평로 133",
+        "phone": "02-666-7777",
+        "website": "http://seobuhospital.co.kr",
+        "treats_default": with_defaults({
+            "심근경색": True,
+            "뇌진탕": True
+        }),
+    },
+
+    "청구 성심 병원": {
+        "lat": 37.6290,
+        "lon": 126.9220,
+        "address": "서울특별시 은평구 통일로 873",
+        "phone": "02-777-8888",
+        "website": "http://www.chunggu.co.kr",
+        "treats_default": with_defaults({
+            "심근경색": True,
+            "뇌출혈": True,
+            "뇌졸중": True,
+            "심장마비": True
+        }),
+    },
+
+    "성누가병원": {
+        "lat": 37.6099,
+        "lon": 126.9293,
+        "address": "서울특별시 은평구 281 102번지",
+        "phone": "02-888-9999",
+        "website": "https://example-snugcah.or.kr",
+        "treats_default": with_defaults({
+            "심근경색": True,
+            "뇌졸중": True,
+            "뇌출혈": True
+        }),
+    },
+
+    "리드힐병원": {
+        "lat": 37.6203,
+        "lon": 126.9299,
+        "address": "서울특별시 은평구 연서로 10",
+        "phone": "02-555-6666",
+        "website": "https://example-leadhill.or.kr",
+        "treats_default": with_defaults({
+            "심근경색": True,
+            "기흉": True,
+            "폐색전증": True
+        }),
+    },
+
+    "연세노블병원": {
+        "lat": 37.6018,
+        "lon": 126.9270,
+        "address": "서울특별시 은평구 녹번동 154-19",
+        "phone": "02-999-0000",
+        "website": "https://example-ynoble.or.kr",
+        "treats_default": with_defaults({
+            "뇌졸중": True,
+            "뇌출혈": True,
+            "뇌수막염": True
+        }),
+    },
+
+})
+
 
 # ------------------------------------------
 # 거리 계산
