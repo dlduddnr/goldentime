@@ -5,6 +5,16 @@ import pydeck as pdk
 import streamlit as st
 from st_aggrid import AgGrid, GridOptionsBuilder, GridUpdateMode
 
+firebase_config = {
+    "apiKey": "AIzaSyBOil40K2b-RiSVsBZVDs1MXoD7YtL_8es",
+    "authDomain": "golden-time-48e25.firebaseapp.com",
+    "databaseURL": "https://golden-time-48e25-default-rtdb.asia-southeast1.firebasedatabase.app",
+    "projectId": "golden-time-48e25",
+    "storageBucket": "golden-time-48e25.firebasestorage.app",
+    "messagingSenderId": "867094964354",
+    "appId": "1:867094964354:web:afabf5c2fc9748503d6c9b"
+}
+
 # GPS
 try:
     from streamlit_geolocation import streamlit_geolocation
