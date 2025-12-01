@@ -5,7 +5,7 @@ import pydeck as pdk
 import streamlit as st
 from st_aggrid import AgGrid, GridOptionsBuilder, GridUpdateMode
 
-# GPS 컴포넌트 (설치 안 되어 있어도 앱은 돌아가게 처리)
+# GPS (설치 안 되어 있어도 실행 유지)
 try:
     from streamlit_geolocation import streamlit_geolocation
     GEO_AVAILABLE = True
@@ -23,40 +23,40 @@ DEFAULT_START_NAME = "하나고등학교"
 
 HOTLINE = "010-5053-6831"
 
+# 👉 Tmap API Key 추가
+TMAP_API_KEY = "c8j1Q7IvTe5MIuIDqIMbp69LUYkmbAMb5myniEQB"
+
 # ------------------------------------------
-# 전역 스타일
+# CSS 스타일
 # ------------------------------------------
-st.markdown(
-    """
-    <style>
-    .main { background: #f5f7fb; }
-    .hero-card {
-        background: white; padding: 26px 30px;
-        border-radius: 18px; box-shadow: 0 8px 24px rgba(15, 23, 42, 0.12);
-        border: 1px solid #e5e9f2; text-align: center;
-    }
-    .hero-title { font-size: 38px; font-weight: 800; color: #111827; margin-bottom: 6px; }
-    .hero-subtitle { font-size: 17px; color: #4b5563; margin-bottom: 14px; }
-    .pill {
-        display:inline-block; padding:4px 10px; border-radius:999px;
-        background:#e5edff; color:#334e68; font-size:12px; margin:2px;
-    }
-    .section-card {
-        background:white; padding:20px 22px; border-radius:16px;
-        box-shadow:0 4px 16px rgba(15,23,42,0.08); border:1px solid #e5e9f2;
-        margin-top:14px;
-    }
-    .section-title { font-size:18px; font-weight:700; margin-bottom:8px; color:#111827; }
-    .stButton>button {
-        border-radius: 999px; font-size: 18px; padding: 10px 22px;
-        border: none; font-weight: 600;
-    }
-    .mode-btn-hospital button { background: #0ea5e9; color: white; }
-    .mode-btn-ambulance button { background: #ef4444; color: white; }
-    </style>
-    """,
-    unsafe_allow_html=True,
-)
+st.markdown("""
+<style>
+.main { background: #f5f7fb; }
+.hero-card {
+    background: white; padding: 26px 30px;
+    border-radius: 18px; box-shadow: 0 8px 24px rgba(15, 23, 42, 0.12);
+    border: 1px solid #e5e9f2; text-align: center;
+}
+.hero-title { font-size: 38px; font-weight: 800; color: #111827; margin-bottom: 6px; }
+.hero-subtitle { font-size: 17px; color: #4b5563; margin-bottom: 14px; }
+.pill {
+    display:inline-block; padding:4px 10px; border-radius:999px;
+    background:#e5edff; color:#334e68; font-size:12px; margin:2px;
+}
+.section-card {
+    background:white; padding:20px 22px; border-radius:16px;
+    box-shadow:0 4px 16px rgba(15,23,42,0.08);
+    border:1px solid #e5e9f2; margin-top:14px;
+}
+.section-title { font-size:18px; font-weight:700; margin-bottom:8px; color:#111827; }
+.stButton>button {
+    border-radius: 999px; font-size: 18px; padding: 10px 22px;
+    border: none; font-weight: 600;
+}
+.mode-btn-hospital button { background: #0ea5e9; color: white; }
+.mode-btn-ambulance button { background: #ef4444; color: white; }
+</style>
+""", unsafe_allow_html=True)
 
 # ------------------------------------------
 # 병명 리스트
@@ -65,7 +65,7 @@ DISEASES = [
     "심근경색", "뇌출혈", "뇌진탕", "심장마비",
     "뇌졸중", "급성 복막염", "기흉", "폐색전증",
     "패혈증", "급성 심부전", "뇌수막염",
-    "대량 위장관 출혈", "아나필락시스",
+    "대량 위장관 출혈", "아나필락시스"
 ]
 
 def empty_treats():
@@ -77,25 +77,55 @@ def with_defaults(custom_dict):
     return base
 
 # ------------------------------------------
-# 세부 시술 가능 여부 정의
+# 세부 시술 가능 목록
 # ------------------------------------------
 PROCEDURES = {
     "뇌출혈 개두술": "신경외과",
     "뇌진탕 모니터링": "신경외과",
     "뇌졸중 rtPA 투여": "신경외과",
-
     "심근경색 PCI": "순환기내과",
     "심부전 인공호흡기": "순환기내과",
-
     "기흉 흉관삽관": "흉부외과",
     "폐색전증 혈전용해술": "흉부외과",
-
     "패혈증 초기 치료": "응급의학과",
     "아나필락시스 응급처치": "응급의학과",
 }
 
 COLOR_MAP = {"o": "#16a34a", "x": "#dc2626", "Δ": "#facc15"}
 
+# ------------------------------------------
+# 거리 계산
+# ------------------------------------------
+def haversine(lat1, lon1, lat2, lon2):
+    R = 6371
+    dlat = math.radians(lat2 - lat1)
+    dlon = math.radians(lon2 - lon1)
+    a = (
+        math.sin(dlat/2)**2
+        + math.cos(math.radians(lat1)) * math.cos(math.radians(lat2))
+        * math.sin(dlon/2)**2
+    )
+    return 2 * R * math.asin(math.sqrt(a))
+
+def get_route_osrm(lat1, lon1, lat2, lon2):
+    url = f"https://router.project-osrm.org/route/v1/driving/{lon1},{lat1};{lon2},{lat2}?overview=full&geometries=geojson"
+    try:
+        res = requests.get(url, timeout=5).json()
+        route = res["routes"][0]
+        coords = route["geometry"]["coordinates"]
+        dist = route["distance"]/1000
+        eta = route["duration"]/60
+        path = [[c[0], c[1]] for c in coords]
+        return dist, eta, path
+    except:
+        d = haversine(lat1, lon1, lat2, lon2)
+        return d, d/50*60, [[lon1, lat1], [lon2, lat2]]
+
+# ------------------------------------------
+# Session State
+# ------------------------------------------
+if "page" not in st.session_state:
+    st.session_state.page = "home"
 # ------------------------------------------
 # 병원 데이터 + 세부 시술 가능 여부
 # ------------------------------------------
@@ -244,6 +274,7 @@ HOSPITALS = {
         }),
         "procedures": {
             "뇌출혈 개두술": "x",
+            "뇌진탄 모니터링": "o" if False else "o",  # 오타 방지용, 그냥 "o"
             "뇌진탕 모니터링": "o",
             "뇌졸중 rtPA 투여": "Δ",
             "심근경색 PCI": "o",
@@ -273,51 +304,12 @@ HOSPITALS = {
             "패혈증 초기 치료": "o",
             "아나필락시스 응급처치": "o"
         }
-    }
-
+    },
 }
 
-
 # ------------------------------------------
-# 거리 계산
+# 병원 관련 세션 초기화
 # ------------------------------------------
-def haversine(lat1, lon1, lat2, lon2):
-    R = 6371
-    dlat = math.radians(lat2 - lat1)
-    dlon = math.radians(lon2 - lon1)
-    a = (
-        math.sin(dlat / 2) ** 2
-        + math.cos(math.radians(lat1))
-        * math.cos(math.radians(lat2))
-        * math.sin(dlon / 2) ** 2
-    )
-    return 2 * R * math.asin(math.sqrt(a))
-
-
-def get_route_osrm(lat1, lon1, lat2, lon2):
-    url = (
-        f"https://router.project-osrm.org/route/v1/driving/"
-        f"{lon1},{lat1};{lon2},{lat2}?overview=full&geometries=geojson"
-    )
-    try:
-        res = requests.get(url, timeout=5).json()
-        route = res["routes"][0]
-        coords = route["geometry"]["coordinates"]
-        dist = route["distance"] / 1000
-        eta = route["duration"] / 60
-        path = [[c[0], c[1]] for c in coords]
-        return dist, eta, path
-    except:
-        d = haversine(lat1, lon1, lat2, lon2)
-        return d, d / 50 * 60, [[lon1, lat1], [lon2, lat2]]
-
-
-# ------------------------------------------
-# 세션 상태 초기화
-# ------------------------------------------
-if "page" not in st.session_state:
-    st.session_state.page = "home"
-
 if "hospital_treats" not in st.session_state:
     st.session_state.hospital_treats = {
         h: dict(info["treats_default"]) for h, info in HOSPITALS.items()
@@ -327,7 +319,6 @@ if "procedures" not in st.session_state:
     st.session_state.procedures = {
         h: dict(info["procedures"]) for h, info in HOSPITALS.items()
     }
-
 # ------------------------------------------
 # HOME 화면
 # ------------------------------------------
@@ -361,6 +352,7 @@ if st.session_state.page == "home":
             if st.button("🚑 구급차 모드", use_container_width=True):
                 st.session_state.page = "ambulance"
             st.markdown("</div>", unsafe_allow_html=True)
+
 # ==========================================================
 #                    병원 모드
 # ==========================================================
@@ -373,11 +365,12 @@ elif st.session_state.page == "hospital":
         if st.button("⬅ 홈으로"):
             st.session_state.page = "home"
 
-    # ------------------------------
-    # 병원 선택 + 치료 가능 병명
-    # ------------------------------
+    # 1. 병원 선택 + 병명 체크
     st.markdown('<div class="section-card">', unsafe_allow_html=True)
-    st.markdown('<div class="section-title">1. 병원 선택 및 수용 가능 병명 설정</div>', unsafe_allow_html=True)
+    st.markdown(
+        '<div class="section-title">1. 병원 선택 및 수용 가능 병명 설정</div>',
+        unsafe_allow_html=True,
+    )
 
     hospital = st.selectbox("병원을 선택하세요.", list(HOSPITALS.keys()))
     info = HOSPITALS[hospital]
@@ -397,16 +390,16 @@ elif st.session_state.page == "hospital":
 
     st.markdown("</div>", unsafe_allow_html=True)
 
-    # ------------------------------
-    # 병원 정보 + 세부 시술 가능 여부 표시
-    # ------------------------------
+    # 2. 병원 정보 + 세부 시술
     st.markdown('<div class="section-card">', unsafe_allow_html=True)
-    st.markdown('<div class="section-title">2. 병원 정보 & 세부 시술 가능 여부</div>', unsafe_allow_html=True)
+    st.markdown(
+        '<div class="section-title">2. 병원 정보 & 세부 시술 가능 여부</div>',
+        unsafe_allow_html=True,
+    )
 
     st.write(f"**병원명:** {hospital}")
     st.write(f"**주소:** {info['address']}")
 
-    # 대표전화
     st.markdown(
         f"""
         <a href="tel:{info['phone']}">
@@ -419,13 +412,9 @@ elif st.session_state.page == "hospital":
         unsafe_allow_html=True,
     )
 
-    # ------------------------------
-    # 세부 시술 가능 여부 출력 (신호등 스타일)
-    # ------------------------------
     st.write("### 🩺 세부 시술/수술 가능 여부")
 
     procedures = st.session_state.procedures[hospital]
-
     for proc, status in procedures.items():
         color = COLOR_MAP.get(status, "#6b7280")
         st.markdown(
@@ -438,23 +427,34 @@ elif st.session_state.page == "hospital":
             unsafe_allow_html=True,
         )
 
-    # ------------------------------
-    # 병원 위치 지도
-    # ------------------------------
-    st.write("### 🗺 병원 위치")
+    # 3. Tmap 병원 위치 지도
+    st.write("### 🗺 병원 위치 (Tmap)")
 
-    hospital_layer = pdk.Layer(
-        "ScatterplotLayer",
-        data=[{"lat": info["lat"], "lon": info["lon"]}],
-        get_position="[lon, lat]",
-        get_color=[239, 68, 68],
-        get_radius=260,
-    )
-    view = pdk.ViewState(latitude=info["lat"], longitude=info["lon"], zoom=14)
-    st.pydeck_chart(pdk.Deck(layers=[hospital_layer], initial_view_state=view))
+    lat = info["lat"]
+    lon = info["lon"]
+
+    html = f"""
+    <div id="hospital_map" style="width:100%; height:400px;"></div>
+
+    <script src="https://apis.openapi.sk.com/tmap/jsv2?version=1&appKey={TMAP_API_KEY}"></script>
+
+    <script>
+        var map = new Tmapv2.Map("hospital_map", {{
+            center: new Tmapv2.LatLng({lat}, {lon}),
+            width: "100%",
+            height: "400px",
+            zoom: 15
+        }});
+
+        var marker = new Tmapv2.Marker({{
+            position: new Tmapv2.LatLng({lat}, {lon}),
+            map: map
+        }});
+    </script>
+    """
+    st.components.v1.html(html, height=400)
 
     st.markdown("</div>", unsafe_allow_html=True)
-
 # ==========================================================
 #                    구급차 모드
 # ==========================================================
@@ -467,9 +467,7 @@ elif st.session_state.page == "ambulance":
         if st.button("⬅ 홈으로"):
             st.session_state.page = "home"
 
-    # ------------------------------
     # 1. 출발 위치
-    # ------------------------------
     st.markdown('<div class="section-card">', unsafe_allow_html=True)
     st.markdown('<div class="section-title">1. 출발 위치 선택</div>', unsafe_allow_html=True)
 
@@ -491,16 +489,11 @@ elif st.session_state.page == "ambulance":
             else:
                 st.warning("위치 정보를 가져오지 못했습니다. 기본 위치를 사용합니다.")
     else:
-        st.info("""
-            ⚠ GPS 기능을 사용하려면 `streamlit-geolocation` 패키지 설치 필요  
-            `pip install streamlit-geolocation`
-        """)
+        st.info("⚠ `streamlit-geolocation` 설치 후 GPS 기능을 사용할 수 있습니다.")
 
     st.markdown("</div>", unsafe_allow_html=True)
 
-    # ------------------------------
     # 2. 병명 선택
-    # ------------------------------
     st.markdown('<div class="section-card">', unsafe_allow_html=True)
     st.markdown('<div class="section-title">2. 병명 선택</div>', unsafe_allow_html=True)
 
@@ -508,17 +501,12 @@ elif st.session_state.page == "ambulance":
 
     st.markdown("</div>", unsafe_allow_html=True)
 
-    # ------------------------------
-    # 3. 수용 가능 병원 필터링 (세부 시술 기반)
-    # ------------------------------
+    # 3. 수용 가능 병원 필터링 (시술 기반)
     candidates = []
 
     for h, i in HOSPITALS.items():
-
-        # 1) 병원에서 해당 병명 치료 가능으로 체크했는지 확인
         can_treat = st.session_state.hospital_treats.get(h, {}).get(disease, False)
 
-        # 2) 병명 → 필요한 시술 매칭
         required_procs = []
         if disease == "뇌출혈":
             required_procs = ["뇌출혈 개두술"]
@@ -529,7 +517,6 @@ elif st.session_state.page == "ambulance":
         elif disease == "패혈증":
             required_procs = ["패혈증 초기 치료"]
 
-        # 3) 시술 가능 여부 검사
         proc_ok = True
         for rp in required_procs:
             if st.session_state.procedures[h].get(rp, "x") == "x":
@@ -550,9 +537,7 @@ elif st.session_state.page == "ambulance":
                 }
             )
 
-    # ------------------------------
     # 4. 병원 선택 테이블
-    # ------------------------------
     st.markdown('<div class="section-card">', unsafe_allow_html=True)
     st.markdown('<div class="section-title">3. 수용 가능 병원 선택</div>', unsafe_allow_html=True)
 
@@ -561,6 +546,7 @@ elif st.session_state.page == "ambulance":
     if df.empty:
         st.error("🚫 해당 병명을 처리 가능한 병원이 없습니다.")
         st.table(pd.DataFrame([{"병원": "병원 없음"}]))
+        st.markdown("</div>", unsafe_allow_html=True)
         st.stop()
 
     df = df.sort_values("도착예상(분)").reset_index(drop=True)
@@ -578,13 +564,13 @@ elif st.session_state.page == "ambulance":
         theme="balham",
     )
 
-    selected_rows = []
     raw_sel = grid.get("selected_rows", [])
-
     if isinstance(raw_sel, pd.DataFrame):
         selected_rows = raw_sel.to_dict("records")
     elif isinstance(raw_sel, list):
         selected_rows = raw_sel
+    else:
+        selected_rows = []
 
     if len(selected_rows) > 0:
         selected_name = selected_rows[0]["병원"]
@@ -600,9 +586,7 @@ elif st.session_state.page == "ambulance":
 
     st.markdown("</div>", unsafe_allow_html=True)
 
-    # ------------------------------
     # 5. 연락 및 핫라인
-    # ------------------------------
     st.markdown('<div class="section-card">', unsafe_allow_html=True)
     st.markdown('<div class="section-title">4. 연락 및 핫라인</div>', unsafe_allow_html=True)
 
@@ -649,50 +633,48 @@ elif st.session_state.page == "ambulance":
 
     st.markdown("</div>", unsafe_allow_html=True)
 
-    # ------------------------------
-    # 6. 경로 지도 + 네이버 길찾기
-    # ------------------------------
+    # 6. Tmap 지도 및 길안내
     st.markdown('<div class="section-card">', unsafe_allow_html=True)
-    st.markdown('<div class="section-title">5. 지도 및 길안내</div>', unsafe_allow_html=True)
+    st.markdown('<div class="section-title">5. 지도 및 길안내 (Tmap)</div>', unsafe_allow_html=True)
 
-    dist, eta, path = get_route_osrm(start_lat, start_lon, sel["lat"], sel["lon"])
+    dist, eta, _ = get_route_osrm(start_lat, start_lon, sel["lat"], sel["lon"])
 
-    st.write(f"🛣 거리: **{round(dist,2)} km**, 예상: **{round(eta,1)} 분**")
+    st.write(f"🛣 거리: **{round(dist, 2)} km**, 예상: **{round(eta, 1)} 분**")
     st.write(f"출발지: **{start_name}**")
 
-    ambulance_layer = pdk.Layer(
-        "ScatterplotLayer",
-        data=[{"lat": start_lat, "lon": start_lon}],
-        get_position="[lon, lat]",
-        get_radius=320,
-        get_color=[37, 99, 235],
-    )
+    start_lat_js = start_lat
+    start_lon_js = start_lon
+    end_lat_js = sel["lat"]
+    end_lon_js = sel["lon"]
 
-    hospital_layer = pdk.Layer(
-        "ScatterplotLayer",
-        data=[{"lat": sel["lat"], "lon": sel["lon"]}],
-        get_position="[lon, lat]",
-        get_radius=340,
-        get_color=[239, 68, 68],
-    )
+    html_route = f"""
+    <div id="route_map" style="width:100%; height:400px;"></div>
 
-    path_layer = pdk.Layer(
-        "PathLayer",
-        data=[{"path": path}],
-        get_path="path",
-        get_width=6,
-        get_color=[16, 185, 129],
-    )
+    <script src="https://apis.openapi.sk.com/tmap/jsv2?version=1&appKey={TMAP_API_KEY}"></script>
 
-    st.pydeck_chart(
-        pdk.Deck(
-            layers=[ambulance_layer, hospital_layer, path_layer],
-            initial_view_state=pdk.ViewState(
-                latitude=(start_lat + sel["lat"]) / 2,
-                longitude=(start_lon + sel["lon"]) / 2,
-                zoom=13,
-            )
-        )
-    )
+    <script>
+        var map = new Tmapv2.Map("route_map", {{
+            center: new Tmapv2.LatLng({(start_lat_js + end_lat_js) / 2},
+                                      {(start_lon_js + end_lon_js) / 2}),
+            width: "100%",
+            height: "400px",
+            zoom: 13
+        }});
+
+        new Tmapv2.Marker({{
+            position: new Tmapv2.LatLng({start_lat_js}, {start_lon_js}),
+            icon: "http://tmapapi.sktelecom.com/upload/tmap/marker/pin_r_m_s.png",
+            map: map
+        }});
+
+        new Tmapv2.Marker({{
+            position: new Tmapv2.LatLng({end_lat_js}, {end_lon_js}),
+            icon: "http://tmapapi.sktelecom.com/upload/tmap/marker/pin_r_m_e.png",
+            map: map
+        }});
+    </script>
+    """
+
+    st.components.v1.html(html_route, height=400)
 
     st.markdown("</div>", unsafe_allow_html=True)
