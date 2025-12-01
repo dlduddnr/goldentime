@@ -647,12 +647,14 @@ elif st.session_state.page == "ambulance":
     end_lat_js = sel["lat"]
     end_lon_js = sel["lon"]
 
-    html_route = f"""
+   html_route = f"""
 <div id="route_map" style="width:100%; height:400px;"></div>
 
 <script src="https://apis.openapi.sk.com/tmap/jsv2?version=1&appKey={TMAP_API_KEY}"></script>
 
 <script>
+
+    // 출발 / 도착 좌표
     var startLat = {start_lat_js};
     var startLon = {start_lon_js};
     var endLat = {end_lat_js};
@@ -660,71 +662,85 @@ elif st.session_state.page == "ambulance":
 
     // 지도 생성
     var map = new Tmapv2.Map("route_map", {{
-        center: new Tmapv2.LatLng((startLat + endLat) / 2, (startLon + endLon) / 2),
+        center: new Tmapv2.LatLng(startLat, startLon),
         width: "100%",
         height: "400px",
         zoom: 13
     }});
 
     // 출발지 마커
-    new Tmapv2.Marker({{
+    var markerStart = new Tmapv2.Marker({{
         position: new Tmapv2.LatLng(startLat, startLon),
         icon: "http://tmapapi.sktelecom.com/upload/tmap/marker/pin_r_m_s.png",
         map: map
     }});
 
     // 도착지 마커
-    new Tmapv2.Marker({{
+    var markerEnd = new Tmapv2.Marker({{
         position: new Tmapv2.LatLng(endLat, endLon),
         icon: "http://tmapapi.sktelecom.com/upload/tmap/marker/pin_r_m_e.png",
         map: map
     }});
 
-    // -------------------------
-    // 🚗 Tmap 길찾기 API 호출
-    // -------------------------
-    var routeData = new Tmapv2.extension.TData();
+    // --------------------------
+    // 🚗 Tmap 경로 API 호출
+    // --------------------------
+    function route() {{
+        var headers = {{
+            "appKey": "{TMAP_API_KEY}"
+        }};
 
-    routeData.getRoutePlanJson({{
-        reqCoordType: "WGS84GEO",
-        resCoordType: "WGS84GEO",
-        startX: startLon,
-        startY: startLat,
-        endX: endLon,
-        endY: endLat,
-        angle: "172",
-        speed: "60",
-        searchOption: "0",   // 0=추천, 4=최단거리, 10=최소시간
-        trafficInfo: "Y",
-        callback: function(result) {{
-            var features = result.features;
+        var param = {{
+            "startX": startLon.toString(),
+            "startY": startLat.toString(),
+            "endX": endLon.toString(),
+            "endY": endLat.toString(),
+            "reqCoordType": "WGS84GEO",
+            "resCoordType": "WGS84GEO"
+        }};
 
-            var drawInfoArr = [];
+        fetch("https://apis.openapi.sk.com/tmap/routes?version=1&format=json", {{
+            method: "POST",
+            headers: {{
+                "Accept": "application/json",
+                "Content-Type": "application/json",
+                "appKey": "{TMAP_API_KEY}"
+            }},
+            body: JSON.stringify(param)
+        }})
+        .then(response => response.json())
+        .then(result => drawRoute(result))
+        .catch(err => console.log(err));
+    }
 
-            for (var i in features) {{
-                var geometry = features[i].geometry;
-                var properties = features[i].properties;
+    // --------------------------
+    // 🚗 경로(LineString) 그리기
+    // --------------------------
+    function drawRoute(data) {{
+        var lineArr = [];
+        var features = data.features;
 
-                if (geometry.type === "LineString") {{
-                    for (var j in geometry.coordinates) {{
-                        var latLng = new Tmapv2.LatLng(
-                            geometry.coordinates[j][1],
-                            geometry.coordinates[j][0]
-                        );
-                        drawInfoArr.push(latLng);
-                    }}
+        for (var i in features) {{
+            if (features[i].geometry.type === "LineString") {{
+                var coords = features[i].geometry.coordinates;
+
+                for (var j in coords) {{
+                    var latlng = new Tmapv2.LatLng(coords[j][1], coords[j][0]);
+                    lineArr.push(latlng);
                 }}
             }}
-
-            // Polyline(길찾기 선) 그리기
-            new Tmapv2.Polyline({{
-                path: drawInfoArr,
-                strokeColor: "#FF0000",
-                strokeWeight: 6,
-                map: map
-            }});
         }}
-    }});
+
+        var polyline = new Tmapv2.Polyline({{
+            map: map,
+            path: lineArr,
+            strokeColor: "#FF0000",
+            strokeWeight: 5
+        }});
+    }
+
+    route();   // 🚗 길찾기 실행
+
 </script>
 """
 
