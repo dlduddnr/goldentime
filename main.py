@@ -5,16 +5,16 @@ import pydeck as pdk
 import streamlit as st
 from st_aggrid import AgGrid, GridOptionsBuilder, GridUpdateMode
 
-# GPS (설치 안 되어 있어도 실행 유지)
+# GPS
 try:
     from streamlit_geolocation import streamlit_geolocation
     GEO_AVAILABLE = True
 except ImportError:
     GEO_AVAILABLE = False
 
-# ------------------------------------------
+# ---------------------------------------------------------
 # 기본 설정
-# ------------------------------------------
+# ---------------------------------------------------------
 st.set_page_config(page_title="골든 타임", layout="wide")
 
 DEFAULT_LAT = 37.641240416205285
@@ -23,12 +23,12 @@ DEFAULT_START_NAME = "하나고등학교"
 
 HOTLINE = "010-5053-6831"
 
-# 👉 Tmap API Key 추가
+# ------------------------- TMAP API KEY -------------------------
 TMAP_API_KEY = "c8j1Q7IvTe5MIuIDqIMbp69LUYkmbAMb5myniEQB"
 
-# ------------------------------------------
+# ---------------------------------------------------------
 # CSS 스타일
-# ------------------------------------------
+# ---------------------------------------------------------
 st.markdown("""
 <style>
 .main { background: #f5f7fb; }
@@ -58,9 +58,9 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# ------------------------------------------
+# ---------------------------------------------------------
 # 병명 리스트
-# ------------------------------------------
+# ---------------------------------------------------------
 DISEASES = [
     "심근경색", "뇌출혈", "뇌진탕", "심장마비",
     "뇌졸중", "급성 복막염", "기흉", "폐색전증",
@@ -71,14 +71,14 @@ DISEASES = [
 def empty_treats():
     return {d: False for d in DISEASES}
 
-def with_defaults(custom_dict):
+def with_defaults(custom):
     base = empty_treats()
-    base.update(custom_dict)
+    base.update(custom)
     return base
 
-# ------------------------------------------
-# 세부 시술 가능 목록
-# ------------------------------------------
+# ---------------------------------------------------------
+# 시술 리스트
+# ---------------------------------------------------------
 PROCEDURES = {
     "뇌출혈 개두술": "신경외과",
     "뇌진탕 모니터링": "신경외과",
@@ -93,74 +93,65 @@ PROCEDURES = {
 
 COLOR_MAP = {"o": "#16a34a", "x": "#dc2626", "Δ": "#facc15"}
 
-# ------------------------------------------
+# ---------------------------------------------------------
 # 거리 계산
-# ------------------------------------------
+# ---------------------------------------------------------
 def haversine(lat1, lon1, lat2, lon2):
     R = 6371
     dlat = math.radians(lat2 - lat1)
     dlon = math.radians(lon2 - lon1)
     a = (
-        math.sin(dlat/2)**2
-        + math.cos(math.radians(lat1)) * math.cos(math.radians(lat2))
-        * math.sin(dlon/2)**2
+        math.sin(dlat/2)**2 +
+        math.cos(math.radians(lat1)) *
+        math.cos(math.radians(lat2)) *
+        math.sin(dlon/2)**2
     )
     return 2 * R * math.asin(math.sqrt(a))
 
 def get_route_osrm(lat1, lon1, lat2, lon2):
-    url = f"https://router.project-osrm.org/route/v1/driving/{lon1},{lat1};{lon2},{lat2}?overview=full&geometries=geojson"
     try:
-        res = requests.get(url, timeout=5).json()
-        route = res["routes"][0]
-        coords = route["geometry"]["coordinates"]
-        dist = route["distance"]/1000
-        eta = route["duration"]/60
-        path = [[c[0], c[1]] for c in coords]
+        url = f"https://router.project-osrm.org/route/v1/driving/{lon1},{lat1};{lon2},{lat2}?overview=full&geometries=geojson"
+        data = requests.get(url, timeout=5).json()
+        r = data["routes"][0]
+        dist = r["distance"] / 1000
+        eta = r["duration"] / 60
+        path = [[c[0], c[1]] for c in r["geometry"]["coordinates"]]
         return dist, eta, path
     except:
         d = haversine(lat1, lon1, lat2, lon2)
         return d, d/50*60, [[lon1, lat1], [lon2, lat2]]
 
-# ------------------------------------------
-# Session State
-# ------------------------------------------
+# ---------------------------------------------------------
+# 세션 초기화
+# ---------------------------------------------------------
 if "page" not in st.session_state:
     st.session_state.page = "home"
-# ------------------------------------------
-# 병원 데이터 + 세부 시술 가능 여부
-# ------------------------------------------
+# ---------------------------------------------------------
+# 병원 데이터
+# ---------------------------------------------------------
 HOSPITALS = {
-
     "은평 연세 병원": {
-        "lat": 37.6160,
-        "lon": 126.9170,
+        "lat": 37.6160, "lon": 126.9170,
         "address": "서울특별시 은평구 연서로 177",
         "phone": "02-111-2222",
         "website": "https://eph.yonsei.ac.kr",
-        "treats_default": with_defaults({
-            "뇌진탕": True,
-            "뇌졸중": True
-        }),
+        "treats_default": with_defaults({"뇌진탕": True, "뇌졸중": True}),
         "procedures": {
             "뇌출혈 개두술": "x",
             "뇌진탕 모니터링": "o",
             "뇌졸중 rtPA 투여": "Δ",
             "심근경색 PCI": "x",
-            "기흉 흉관삽관": "o"
-        }
+            "기흉 흉관삽관": "o",
+        },
     },
 
     "가톨릭대 은평 성모병원": {
-        "lat": 37.6370,
-        "lon": 126.9190,
+        "lat": 37.6370, "lon": 126.9190,
         "address": "서울특별시 은평구 통일로 1021",
         "phone": "02-222-3333",
         "website": "https://www.cmcseoul.or.kr",
         "treats_default": with_defaults({
-            "심근경색": True,
-            "뇌출혈": True,
-            "뇌졸중": True,
-            "심장마비": True
+            "심근경색": True, "뇌출혈": True, "뇌졸중": True, "심장마비": True
         }),
         "procedures": {
             "뇌출혈 개두술": "o",
@@ -169,20 +160,17 @@ HOSPITALS = {
             "심근경색 PCI": "o",
             "기흉 흉관삽관": "o",
             "패혈증 초기 치료": "o",
-            "아나필락시스 응급처치": "o"
-        }
+            "아나필락시스 응급처치": "o",
+        },
     },
 
     "서울 특별시 은평병원": {
-        "lat": 37.5940039,
-        "lon": 126.9232331,
+        "lat": 37.5940039, "lon": 126.9232331,
         "address": "서울특별시 은평구 백련산로 90",
         "phone": "02-444-5555",
         "website": "http://epmhc.or.kr",
         "treats_default": with_defaults({
-            "뇌출혈": True,
-            "뇌진탕": True,
-            "뇌졸중": True
+            "뇌출혈": True, "뇌진탕": True, "뇌졸중": True
         }),
         "procedures": {
             "뇌출혈 개두술": "o",
@@ -191,42 +179,17 @@ HOSPITALS = {
             "심근경색 PCI": "o",
             "기흉 흉관삽관": "o",
             "패혈증 초기 치료": "o",
-            "아나필락시스 응급처치": "o"
-        }
+            "아나필락시스 응급처치": "o",
+        },
     },
 
     "본 서부병원": {
-        "lat": 37.6050,
-        "lon": 126.9090,
+        "lat": 37.6050, "lon": 126.9090,
         "address": "서울특별시 은평구 은평로 133",
         "phone": "02-666-7777",
         "website": "http://seobuhospital.co.kr",
         "treats_default": with_defaults({
-            "심근경색": True,
-            "뇌진탕": True
-        }),
-        "procedures": {
-            "뇌출혈 개두술": "x",
-            "뇌진탕 모니터링": "o",
-            "뇌졸중 rtPA 투여": "x",
-            "심근경색 PCI": "o",
-            "기흉 흉관삽관": "o",
-            "패혈증 초기 치료": "o",
-            "아나필락시스 응급처치": "o"
-        }
-    },
-
-    "청구 성심 병원": {
-        "lat": 37.6290,
-        "lon": 126.9220,
-        "address": "서울특별시 은평구 통일로 873",
-        "phone": "02-777-8888",
-        "website": "http://www.chunggu.co.kr",
-        "treats_default": with_defaults({
-            "심근경색": True,
-            "뇌출혈": True,
-            "뇌졸중": True,
-            "심장마비": True
+            "심근경색": True, "뇌진탕": True
         }),
         "procedures": {
             "뇌출혈 개두술": "o",
@@ -235,81 +198,90 @@ HOSPITALS = {
             "심근경색 PCI": "o",
             "기흉 흉관삽관": "o",
             "패혈증 초기 치료": "o",
-            "아나필락시스 응급처치": "o"
-        }
+            "아나필락시스 응급처치": "o",
+        },
+    },
+
+    "청구 성심 병원": {
+        "lat": 37.6290, "lon": 126.9220,
+        "address": "서울특별시 은평구 통일로 873",
+        "phone": "02-777-8888",
+        "website": "http://www.chunggu.co.kr",
+        "treats_default": with_defaults({
+            "심근경색": True, "뇌출혈": True, "뇌졸중": True, "심장마비": True
+        }),
+        "procedures": {
+            "뇌출혈 개두술": "o",
+            "뇌진탕 모니터링": "o",
+            "뇌졸중 rtPA 투여": "o",
+            "심근경색 PCI": "o",
+            "기흉 흉관삽관": "o",
+            "패혈증 초기 치료": "o",
+            "아나필락시스 응급처치": "o",
+        },
     },
 
     "성누가병원": {
-        "lat": 37.6099,
-        "lon": 126.9293,
+        "lat": 37.6099, "lon": 126.9293,
         "address": "서울특별시 은평구 281 102번지",
         "phone": "02-888-9999",
         "website": "https://example-snugcah.or.kr",
         "treats_default": with_defaults({
-            "심근경색": True,
-            "뇌졸중": True,
-            "뇌출혈": True
+            "심근경색": True, "뇌졸중": True, "뇌출혈": True
         }),
         "procedures": {
-            "뇌출혈 개두술": "x",
+            "뇌출혈 개두술": "o",
             "뇌진탕 모니터링": "o",
-            "뇌졸중 rtPA 투여": "Δ",
-            "심근경색 PCI": "x",
+            "뇌졸중 rtPA 투여": "o",
+            "심근경색 PCI": "o",
             "기흉 흉관삽관": "o",
             "패혈증 초기 치료": "o",
-            "아나필락시스 응급처치": "o"
-        }
+            "아나필락시스 응급처치": "o",
+        },
     },
 
     "리드힐병원": {
-        "lat": 37.6203,
-        "lon": 126.9299,
+        "lat": 37.6203, "lon": 126.9299,
         "address": "서울특별시 은평구 연서로 10",
         "phone": "02-555-6666",
         "website": "https://example-leadhill.or.kr",
         "treats_default": with_defaults({
-            "심근경색": True,
-            "기흉": True,
-            "폐색전증": True
+            "심근경색": True, "기흉": True, "폐색전증": True
         }),
         "procedures": {
-            "뇌출혈 개두술": "x",
-            "뇌진탄 모니터링": "o" if False else "o",  # 오타 방지용, 그냥 "o"
+            "뇌출혈 개두술": "o",
             "뇌진탕 모니터링": "o",
-            "뇌졸중 rtPA 투여": "Δ",
+            "뇌졸중 rtPA 투여": "o",
             "심근경색 PCI": "o",
             "기흉 흉관삽관": "o",
             "패혈증 초기 치료": "o",
-            "아나필락시스 응급처치": "o"
-        }
+            "아나필락시스 응급처치": "o",
+        },
     },
 
     "연세노블병원": {
-        "lat": 37.6018,
-        "lon": 126.9270,
+        "lat": 37.6018, "lon": 126.9270,
         "address": "서울특별시 은평구 녹번동 154-19",
         "phone": "02-999-0000",
         "website": "https://example-ynoble.or.kr",
         "treats_default": with_defaults({
-            "뇌졸중": True,
-            "뇌출혈": True,
-            "뇌수막염": True
+            "뇌졸중": True, "뇌출혈": True, "뇌수막염": True
         }),
         "procedures": {
-            "뇌출혈 개두술": "x",
+            "뇌출혈 개두술": "o",
             "뇌진탕 모니터링": "o",
-            "뇌졸중 rtPA 투여": "Δ",
-            "심근경색 PCI": "x",
+            "뇌졸중 rtPA 투여": "o",
+            "심근경색 PCI": "o",
             "기흉 흉관삽관": "o",
             "패혈증 초기 치료": "o",
-            "아나필락시스 응급처치": "o"
-        }
+            "아나필락시스 응급처치": "o",
+        },
     },
 }
 
-# ------------------------------------------
-# 병원 관련 세션 초기화
-# ------------------------------------------
+# ---------------------------------------------------------
+# 시술 표시 및 치료 가능 여부 세션 저장
+# ---------------------------------------------------------
 if "hospital_treats" not in st.session_state:
     st.session_state.hospital_treats = {
         h: dict(info["treats_default"]) for h, info in HOSPITALS.items()
@@ -319,26 +291,25 @@ if "procedures" not in st.session_state:
     st.session_state.procedures = {
         h: dict(info["procedures"]) for h, info in HOSPITALS.items()
     }
-# ------------------------------------------
+
+# ---------------------------------------------------------
 # HOME 화면
-# ------------------------------------------
+# ---------------------------------------------------------
 if st.session_state.page == "home":
     col_l, col_c, col_r = st.columns([1, 2, 1])
+
     with col_c:
-        st.markdown(
-            """
-            <div class="hero-card">
-                <div class="hero-title">⏱ 골든 타임</div>
-                <p class="hero-subtitle">은평권 응급 환자 이송 · 병원 매칭 시스템</p>
-                <div>
-                    <span class="pill">하나고 기준</span>
-                    <span class="pill">실시간 경로 분석</span>
-                    <span class="pill">세부 시술 가능 여부</span>
-                </div>
+        st.markdown("""
+        <div class="hero-card">
+            <div class="hero-title">⏱ 골든 타임</div>
+            <p class="hero-subtitle">은평권 응급 환자 이송 · 병원 매칭 시스템</p>
+            <div>
+                <span class="pill">하나고 기준</span>
+                <span class="pill">실시간 경로 분석</span>
+                <span class="pill">세부 시술 가능 여부</span>
             </div>
-            """,
-            unsafe_allow_html=True,
-        )
+        </div>
+        """, unsafe_allow_html=True)
 
         c1, c2 = st.columns(2)
         with c1:
@@ -352,10 +323,9 @@ if st.session_state.page == "home":
             if st.button("🚑 구급차 모드", use_container_width=True):
                 st.session_state.page = "ambulance"
             st.markdown("</div>", unsafe_allow_html=True)
-
-# ==========================================================
-#                    병원 모드
-# ==========================================================
+# =========================================================
+#                        병원 모드
+# =========================================================
 elif st.session_state.page == "hospital":
 
     top_left, top_right = st.columns([4, 1])
@@ -365,12 +335,11 @@ elif st.session_state.page == "hospital":
         if st.button("⬅ 홈으로"):
             st.session_state.page = "home"
 
-    # 1. 병원 선택 + 병명 체크
+    # -----------------------------------------------------
+    # 1. 병원 선택 + 치료 가능 병명 체크
+    # -----------------------------------------------------
     st.markdown('<div class="section-card">', unsafe_allow_html=True)
-    st.markdown(
-        '<div class="section-title">1. 병원 선택 및 수용 가능 병명 설정</div>',
-        unsafe_allow_html=True,
-    )
+    st.markdown('<div class="section-title">1. 병원 선택 및 수용 가능 병명 설정</div>', unsafe_allow_html=True)
 
     hospital = st.selectbox("병원을 선택하세요.", list(HOSPITALS.keys()))
     info = HOSPITALS[hospital]
@@ -390,16 +359,16 @@ elif st.session_state.page == "hospital":
 
     st.markdown("</div>", unsafe_allow_html=True)
 
-    # 2. 병원 정보 + 세부 시술
+    # -----------------------------------------------------
+    # 2. 병원 정보 + 세부 시술 가능 여부
+    # -----------------------------------------------------
     st.markdown('<div class="section-card">', unsafe_allow_html=True)
-    st.markdown(
-        '<div class="section-title">2. 병원 정보 & 세부 시술 가능 여부</div>',
-        unsafe_allow_html=True,
-    )
+    st.markdown('<div class="section-title">2. 병원 정보 & 세부 시술 가능 여부</div>', unsafe_allow_html=True)
 
     st.write(f"**병원명:** {hospital}")
     st.write(f"**주소:** {info['address']}")
 
+    # 대표전화 버튼
     st.markdown(
         f"""
         <a href="tel:{info['phone']}">
@@ -412,10 +381,14 @@ elif st.session_state.page == "hospital":
         unsafe_allow_html=True,
     )
 
+    # -------------------------
+    # 시술 가능 여부 (신호등 색)
+    # -------------------------
     st.write("### 🩺 세부 시술/수술 가능 여부")
 
-    procedures = st.session_state.procedures[hospital]
-    for proc, status in procedures.items():
+    proc_data = st.session_state.procedures[hospital]
+
+    for proc, status in proc_data.items():
         color = COLOR_MAP.get(status, "#6b7280")
         st.markdown(
             f"""
@@ -427,37 +400,24 @@ elif st.session_state.page == "hospital":
             unsafe_allow_html=True,
         )
 
-    # 3. Tmap 병원 위치 지도
-    st.write("### 🗺 병원 위치 (Tmap)")
+    # -----------------------------------------------------
+    # 3. 병원 위치 지도 (PyDeck)
+    # -----------------------------------------------------
+    st.write("### 🗺 병원 위치")
+    hospital_layer = pdk.Layer(
+        "ScatterplotLayer",
+        data=[{"lat": info["lat"], "lon": info["lon"]}],
+        get_position="[lon, lat]",
+        get_color=[239, 68, 68],
+        get_radius=260,
+    )
+    view = pdk.ViewState(latitude=info["lat"], longitude=info["lon"], zoom=14)
 
-    lat = info["lat"]
-    lon = info["lon"]
-
-    html = f"""
-    <div id="hospital_map" style="width:100%; height:400px;"></div>
-
-    <script src="https://apis.openapi.sk.com/tmap/jsv2?version=1&appKey={TMAP_API_KEY}"></script>
-
-    <script>
-        var map = new Tmapv2.Map("hospital_map", {{
-            center: new Tmapv2.LatLng({lat}, {lon}),
-            width: "100%",
-            height: "400px",
-            zoom: 15
-        }});
-
-        var marker = new Tmapv2.Marker({{
-            position: new Tmapv2.LatLng({lat}, {lon}),
-            map: map
-        }});
-    </script>
-    """
-    st.components.v1.html(html, height=400)
-
+    st.pydeck_chart(pdk.Deck(layers=[hospital_layer], initial_view_state=view))
     st.markdown("</div>", unsafe_allow_html=True)
-# ==========================================================
-#                    구급차 모드
-# ==========================================================
+# =========================================================
+#                        구급차 모드
+# =========================================================
 elif st.session_state.page == "ambulance":
 
     top_left, top_right = st.columns([4, 1])
@@ -467,7 +427,9 @@ elif st.session_state.page == "ambulance":
         if st.button("⬅ 홈으로"):
             st.session_state.page = "home"
 
-    # 1. 출발 위치
+    # -----------------------------------------------------
+    # 1. 출발 위치 (GPS or 기본 하나고)
+    # -----------------------------------------------------
     st.markdown('<div class="section-card">', unsafe_allow_html=True)
     st.markdown('<div class="section-title">1. 출발 위치 선택</div>', unsafe_allow_html=True)
 
@@ -481,7 +443,7 @@ elif st.session_state.page == "ambulance":
         st.info("📡 GPS 버튼을 누르면 현재 기기 위치를 사용합니다.")
         if st.button("📍 GPS로 현재 위치 가져오기"):
             loc = streamlit_geolocation()
-            if isinstance(loc, dict) and loc.get("latitude") and loc.get("longitude"):
+            if isinstance(loc, dict) and loc.get("latitude"):
                 start_lat = loc["latitude"]
                 start_lon = loc["longitude"]
                 start_name = "현재 위치"
@@ -489,11 +451,15 @@ elif st.session_state.page == "ambulance":
             else:
                 st.warning("위치 정보를 가져오지 못했습니다. 기본 위치를 사용합니다.")
     else:
-        st.info("⚠ `streamlit-geolocation` 설치 후 GPS 기능을 사용할 수 있습니다.")
+        st.info("""
+        ⚠ GPS 기능을 사용하려면 `pip install streamlit-geolocation` 설치해야 합니다.
+        """)
 
     st.markdown("</div>", unsafe_allow_html=True)
 
+    # -----------------------------------------------------
     # 2. 병명 선택
+    # -----------------------------------------------------
     st.markdown('<div class="section-card">', unsafe_allow_html=True)
     st.markdown('<div class="section-title">2. 병명 선택</div>', unsafe_allow_html=True)
 
@@ -501,12 +467,17 @@ elif st.session_state.page == "ambulance":
 
     st.markdown("</div>", unsafe_allow_html=True)
 
-    # 3. 수용 가능 병원 필터링 (시술 기반)
+    # -----------------------------------------------------
+    # 3. 수용 가능 병원 필터링
+    # -----------------------------------------------------
     candidates = []
 
     for h, i in HOSPITALS.items():
+
+        # 병명 체크
         can_treat = st.session_state.hospital_treats.get(h, {}).get(disease, False)
 
+        # 병명 → 필요한 시술 매칭
         required_procs = []
         if disease == "뇌출혈":
             required_procs = ["뇌출혈 개두술"]
@@ -524,20 +495,20 @@ elif st.session_state.page == "ambulance":
 
         if can_treat and proc_ok:
             dist, eta, _ = get_route_osrm(start_lat, start_lon, i["lat"], i["lon"])
-            candidates.append(
-                {
-                    "병원": h,
-                    "거리(km)": round(dist, 2),
-                    "도착예상(분)": round(eta, 1),
-                    "address": i["address"],
-                    "phone": i["phone"],
-                    "website": i["website"],
-                    "lat": i["lat"],
-                    "lon": i["lon"],
-                }
-            )
+            candidates.append({
+                "병원": h,
+                "거리(km)": round(dist, 2),
+                "도착예상(분)": round(eta, 1),
+                "address": i["address"],
+                "phone": i["phone"],
+                "website": i["website"],
+                "lat": i["lat"],
+                "lon": i["lon"],
+            })
 
+    # -----------------------------------------------------
     # 4. 병원 선택 테이블
+    # -----------------------------------------------------
     st.markdown('<div class="section-card">', unsafe_allow_html=True)
     st.markdown('<div class="section-title">3. 수용 가능 병원 선택</div>', unsafe_allow_html=True)
 
@@ -545,8 +516,6 @@ elif st.session_state.page == "ambulance":
 
     if df.empty:
         st.error("🚫 해당 병명을 처리 가능한 병원이 없습니다.")
-        st.table(pd.DataFrame([{"병원": "병원 없음"}]))
-        st.markdown("</div>", unsafe_allow_html=True)
         st.stop()
 
     df = df.sort_values("도착예상(분)").reset_index(drop=True)
@@ -554,25 +523,17 @@ elif st.session_state.page == "ambulance":
 
     gob = GridOptionsBuilder.from_dataframe(display_df)
     gob.configure_selection("single", use_checkbox=True)
-    gob.configure_pagination(enabled=True, paginationAutoPageSize=True)
 
     grid = AgGrid(
         display_df,
         gridOptions=gob.build(),
-        update_mode=GridUpdateMode.SELECTION_CHANGED | GridUpdateMode.MODEL_CHANGED,
+        update_mode=GridUpdateMode.SELECTION_CHANGED,
         height=260,
         theme="balham",
     )
 
-    raw_sel = grid.get("selected_rows", [])
-    if isinstance(raw_sel, pd.DataFrame):
-        selected_rows = raw_sel.to_dict("records")
-    elif isinstance(raw_sel, list):
-        selected_rows = raw_sel
-    else:
-        selected_rows = []
-
-    if len(selected_rows) > 0:
+    selected_rows = grid.get("selected_rows", [])
+    if selected_rows:
         selected_name = selected_rows[0]["병원"]
     else:
         selected_name = df.iloc[0]["병원"]
@@ -580,20 +541,21 @@ elif st.session_state.page == "ambulance":
     sel = df[df["병원"] == selected_name].iloc[0]
 
     st.markdown(
-        f"**선택된 병원:** `{selected_name}` · 거리 **{sel['거리(km)']} km**, "
-        f"예상 **{sel['도착예상(분)']} 분**"
+        f"**선택된 병원:** `{selected_name}` · 거리 **{sel['거리(km)']} km**, 예상 **{sel['도착예상(분)']} 분**"
     )
 
     st.markdown("</div>", unsafe_allow_html=True)
 
+    # -----------------------------------------------------
     # 5. 연락 및 핫라인
+    # -----------------------------------------------------
     st.markdown('<div class="section-card">', unsafe_allow_html=True)
     st.markdown('<div class="section-title">4. 연락 및 핫라인</div>', unsafe_allow_html=True)
 
     c1, c2 = st.columns(2)
 
     with c1:
-        st.write(f"📍 **주소:** {sel['address']}")
+        st.write(f"📍 주소: {sel['address']}")
         st.markdown(
             f"""
             <a href="tel:{sel['phone']}">
@@ -618,7 +580,7 @@ elif st.session_state.page == "ambulance":
         )
 
     with c2:
-        st.write("🚨 **응급 핫라인**")
+        st.write("🚨 응급 핫라인")
         st.markdown(
             f"""
             <a href="tel:{HOTLINE}">
@@ -633,27 +595,24 @@ elif st.session_state.page == "ambulance":
 
     st.markdown("</div>", unsafe_allow_html=True)
 
-    # 6. Tmap 지도 및 길안내
+    # -----------------------------------------------------
+    # 6. TMAP 지도 + 길찾기 + 마커 + Polyline
+    # -----------------------------------------------------
     st.markdown('<div class="section-card">', unsafe_allow_html=True)
     st.markdown('<div class="section-title">5. 지도 및 길안내 (Tmap)</div>', unsafe_allow_html=True)
-
-    dist, eta, _ = get_route_osrm(start_lat, start_lon, sel["lat"], sel["lon"])
-
-    st.write(f"🛣 거리: **{round(dist, 2)} km**, 예상: **{round(eta, 1)} 분**")
-    st.write(f"출발지: **{start_name}**")
 
     start_lat_js = start_lat
     start_lon_js = start_lon
     end_lat_js = sel["lat"]
     end_lon_js = sel["lon"]
 
-  html_route = f"""
+    # ⭐⭐⭐ Tmap HTML + JS 전체 코드 (마커 + 경로선 정상 표시)
+    html_route = f"""
     <div id="route_map" style="width:100%; height:400px;"></div>
 
     <script src="https://apis.openapi.sk.com/tmap/jsv2?version=1&appKey={TMAP_API_KEY}"></script>
 
     <script>
-
         var startLat = {start_lat_js};
         var startLon = {start_lon_js};
         var endLat = {end_lat_js};
@@ -666,28 +625,24 @@ elif st.session_state.page == "ambulance":
             zoom: 13
         }});
 
+        // 출발지 마커
         new Tmapv2.Marker({{
             position: new Tmapv2.LatLng(startLat, startLon),
             icon: "http://tmapapi.sktelecom.com/upload/tmap/marker/pin_r_m_s.png",
             map: map
         }});
 
+        // 도착지 마커
         new Tmapv2.Marker({{
             position: new Tmapv2.LatLng(endLat, endLon),
             icon: "http://tmapapi.sktelecom.com/upload/tmap/marker/pin_r_m_e.png",
             map: map
         }});
 
+        // ------------------------
+        // 🚗 Tmap 경로 API 호출
+        // ------------------------
         function route() {{
-            var param = {{
-                "startX": startLon.toString(),
-                "startY": startLat.toString(),
-                "endX": endLon.toString(),
-                "endY": endLat.toString(),
-                "reqCoordType": "WGS84GEO",
-                "resCoordType": "WGS84GEO"
-            }};
-
             fetch("https://apis.openapi.sk.com/tmap/routes?version=1&format=json", {{
                 method: "POST",
                 headers: {{
@@ -695,13 +650,23 @@ elif st.session_state.page == "ambulance":
                     "Content-Type": "application/json",
                     "appKey": "{TMAP_API_KEY}"
                 }},
-                body: JSON.stringify(param)
+                body: JSON.stringify({{
+                    startX: startLon.toString(),
+                    startY: startLat.toString(),
+                    endX: endLon.toString(),
+                    endY: endLat.toString(),
+                    reqCoordType: "WGS84GEO",
+                    resCoordType: "WGS84GEO"
+                }})
             }})
-            .then(response => response.json())
-            .then(result => drawRoute(result))
+            .then(res => res.json())
+            .then(data => drawRoute(data))
             .catch(err => console.log(err));
-        }
+        }}
 
+        // ------------------------
+        // 🚗 Polyline 그리기
+        // ------------------------
         function drawRoute(data) {{
             var lineArr = [];
             var features = data.features;
@@ -709,7 +674,6 @@ elif st.session_state.page == "ambulance":
             for (var i in features) {{
                 if (features[i].geometry.type === "LineString") {{
                     var coords = features[i].geometry.coordinates;
-
                     for (var j in coords) {{
                         lineArr.push(new Tmapv2.LatLng(coords[j][1], coords[j][0]));
                     }}
@@ -722,11 +686,11 @@ elif st.session_state.page == "ambulance":
                 strokeWeight: 5,
                 map: map
             }});
-        }
+        }}
 
         route();
-
     </script>
     """
 
     st.components.v1.html(html_route, height=400)
+    st.markdown("</div>", unsafe_allow_html=True)
