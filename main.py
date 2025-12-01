@@ -647,101 +647,86 @@ elif st.session_state.page == "ambulance":
     end_lat_js = sel["lat"]
     end_lon_js = sel["lon"]
 
-   html_route = f"""
-<div id="route_map" style="width:100%; height:400px;"></div>
+  html_route = f"""
+    <div id="route_map" style="width:100%; height:400px;"></div>
 
-<script src="https://apis.openapi.sk.com/tmap/jsv2?version=1&appKey={TMAP_API_KEY}"></script>
+    <script src="https://apis.openapi.sk.com/tmap/jsv2?version=1&appKey={TMAP_API_KEY}"></script>
 
-<script>
+    <script>
 
-    // 출발 / 도착 좌표
-    var startLat = {start_lat_js};
-    var startLon = {start_lon_js};
-    var endLat = {end_lat_js};
-    var endLon = {end_lon_js};
+        var startLat = {start_lat_js};
+        var startLon = {start_lon_js};
+        var endLat = {end_lat_js};
+        var endLon = {end_lon_js};
 
-    // 지도 생성
-    var map = new Tmapv2.Map("route_map", {{
-        center: new Tmapv2.LatLng(startLat, startLon),
-        width: "100%",
-        height: "400px",
-        zoom: 13
-    }});
+        var map = new Tmapv2.Map("route_map", {{
+            center: new Tmapv2.LatLng(startLat, startLon),
+            width: "100%",
+            height: "400px",
+            zoom: 13
+        }});
 
-    // 출발지 마커
-    var markerStart = new Tmapv2.Marker({{
-        position: new Tmapv2.LatLng(startLat, startLon),
-        icon: "http://tmapapi.sktelecom.com/upload/tmap/marker/pin_r_m_s.png",
-        map: map
-    }});
+        new Tmapv2.Marker({{
+            position: new Tmapv2.LatLng(startLat, startLon),
+            icon: "http://tmapapi.sktelecom.com/upload/tmap/marker/pin_r_m_s.png",
+            map: map
+        }});
 
-    // 도착지 마커
-    var markerEnd = new Tmapv2.Marker({{
-        position: new Tmapv2.LatLng(endLat, endLon),
-        icon: "http://tmapapi.sktelecom.com/upload/tmap/marker/pin_r_m_e.png",
-        map: map
-    }});
+        new Tmapv2.Marker({{
+            position: new Tmapv2.LatLng(endLat, endLon),
+            icon: "http://tmapapi.sktelecom.com/upload/tmap/marker/pin_r_m_e.png",
+            map: map
+        }});
 
-    // --------------------------
-    // 🚗 Tmap 경로 API 호출
-    // --------------------------
-    function route() {{
-        var headers = {{
-            "appKey": "{TMAP_API_KEY}"
-        }};
+        function route() {{
+            var param = {{
+                "startX": startLon.toString(),
+                "startY": startLat.toString(),
+                "endX": endLon.toString(),
+                "endY": endLat.toString(),
+                "reqCoordType": "WGS84GEO",
+                "resCoordType": "WGS84GEO"
+            }};
 
-        var param = {{
-            "startX": startLon.toString(),
-            "startY": startLat.toString(),
-            "endX": endLon.toString(),
-            "endY": endLat.toString(),
-            "reqCoordType": "WGS84GEO",
-            "resCoordType": "WGS84GEO"
-        }};
+            fetch("https://apis.openapi.sk.com/tmap/routes?version=1&format=json", {{
+                method: "POST",
+                headers: {{
+                    "Accept": "application/json",
+                    "Content-Type": "application/json",
+                    "appKey": "{TMAP_API_KEY}"
+                }},
+                body: JSON.stringify(param)
+            }})
+            .then(response => response.json())
+            .then(result => drawRoute(result))
+            .catch(err => console.log(err));
+        }
 
-        fetch("https://apis.openapi.sk.com/tmap/routes?version=1&format=json", {{
-            method: "POST",
-            headers: {{
-                "Accept": "application/json",
-                "Content-Type": "application/json",
-                "appKey": "{TMAP_API_KEY}"
-            }},
-            body: JSON.stringify(param)
-        }})
-        .then(response => response.json())
-        .then(result => drawRoute(result))
-        .catch(err => console.log(err));
-    }
+        function drawRoute(data) {{
+            var lineArr = [];
+            var features = data.features;
 
-    // --------------------------
-    // 🚗 경로(LineString) 그리기
-    // --------------------------
-    function drawRoute(data) {{
-        var lineArr = [];
-        var features = data.features;
+            for (var i in features) {{
+                if (features[i].geometry.type === "LineString") {{
+                    var coords = features[i].geometry.coordinates;
 
-        for (var i in features) {{
-            if (features[i].geometry.type === "LineString") {{
-                var coords = features[i].geometry.coordinates;
-
-                for (var j in coords) {{
-                    var latlng = new Tmapv2.LatLng(coords[j][1], coords[j][0]);
-                    lineArr.push(latlng);
+                    for (var j in coords) {{
+                        lineArr.push(new Tmapv2.LatLng(coords[j][1], coords[j][0]));
+                    }}
                 }}
             }}
-        }}
 
-        var polyline = new Tmapv2.Polyline({{
-            map: map,
-            path: lineArr,
-            strokeColor: "#FF0000",
-            strokeWeight: 5
-        }});
-    }
+            new Tmapv2.Polyline({{
+                path: lineArr,
+                strokeColor: "#FF0000",
+                strokeWeight: 5,
+                map: map
+            }});
+        }
 
-    route();   // 🚗 길찾기 실행
+        route();
 
-</script>
-"""
+    </script>
+    """
 
-st.components.v1.html(html_route, height=400)
+    st.components.v1.html(html_route, height=400)
