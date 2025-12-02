@@ -216,7 +216,7 @@ HOSPITALS = {
         "lat": 37.6050, "lon": 126.9090,
         "address": "서울특별시 은평구 은평로 133",
         "phone": "02-666-7777",
-        "website": "http://seobuhospital.co.kr",
+        "website": "http://www.bonseobu.com",
         "treats_default": with_defaults({
             "심근경색": True, "뇌진탕": True
         }),
@@ -273,7 +273,7 @@ HOSPITALS = {
         "lat": 37.59980895027258, "lon": 126.91643982748181,
         "address": "서울특별시 은평구 연서로 10",
         "phone": "02-555-6666",
-        "website": "https://example-leadhill.or.kr",
+        "website": "http://m.leadheals.co.kr",
         "treats_default": with_defaults({
             "심근경색": True, "기흉": True, "폐색전증": True
         }),
