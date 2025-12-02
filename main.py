@@ -160,7 +160,11 @@ HOSPITALS = {
         "address": "서울특별시 종로구 대학로 101",
         "phone": "1588-5700",
         "website": "https://eph.yonsei.ac.kr",
-        "treats_default": with_defaults({"심근경색": True, "뇌출혈": True,"뇌진탕": True, "뇌졸중": True,"심장마비": True, "급성 복막염": True,"기흉": True, "폐색전증": True,"패혈증": True, "급성 심부전": True,"뇌수막염": True, "대량 위장관 출혈": True,"아나필락시스": True}),
+        "treats_default": with_defaults({
+            "심근경색": True, "뇌출혈": True,"뇌진탕": True,
+            "뇌졸중": True, "심장마비": True, "급성 복막염": True, 
+            "기흉": True, "폐색전증": True,"패혈증": True, "급성 심부전": True,
+            "뇌수막염": True, "대량 위장관 출혈": True, "아나필락시스": True}),
         "procedures": {
             "뇌출혈 개두술": "x",
             "뇌진탕 모니터링": "o",
