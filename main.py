@@ -251,7 +251,7 @@ HOSPITALS = {
     },
 
     "리드힐병원": {
-        "lat": 37.6203, "lon": 126.9299,
+        "lat": 37.59980895027258, "lon": 126.91643982748181,
         "address": "서울특별시 은평구 연서로 10",
         "phone": "02-555-6666",
         "website": "https://example-leadhill.or.kr",
