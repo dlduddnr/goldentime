@@ -254,7 +254,7 @@ HOSPITALS = {
         "lat": 37.6099, "lon": 126.9293,
         "address": "서울특별시 은평구 281 102번지",
         "phone": "02-888-9999",
-        "website": "https://example-snugcah.or.kr",
+        "website": "https://slmc.co.kr/new/index.php",
         "treats_default": with_defaults({
             "심근경색": True, "뇌졸중": True, "뇌출혈": True
         }),
